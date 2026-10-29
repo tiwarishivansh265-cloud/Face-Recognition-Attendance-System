@@ -1,1 +1,181 @@
 
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FRAMS | Attendance Records</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+            font-family: Arial, sans-serif;
+        }
+
+        body {
+            margin: 0;
+            padding: 25px;
+            background: #091426;
+            color: #f1f5f9;
+        }
+
+        .container {
+            max-width: 1100px;
+            margin: auto;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+
+        h1 {
+            font-size: 27px;
+        }
+
+        p {
+            color: #9fb0c9;
+            margin-top: 9px;
+        }
+
+        .card {
+            background: #12223b;
+            border: 1px solid #293d5a;
+            border-radius: 13px;
+            padding: 22px;
+        }
+
+        .table-wrap {
+            width: 100%;
+            overflow-x: auto;
+            margin-top: 20px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 650px;
+        }
+
+        th, td {
+            padding: 14px;
+            border-bottom: 1px solid #293d5a;
+            text-align: left;
+            font-size: 14px;
+        }
+
+        th {
+            background: #1a304e;
+            color: #bfdbfe;
+        }
+
+        td {
+            color: #e2e8f0;
+        }
+
+        .empty {
+            text-align: center;
+            padding: 30px;
+            color: #9fb0c9;
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 11px 15px;
+            background: #2563eb;
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+        }
+
+        .back {
+            background: #334155;
+        }
+
+        .actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 20px;
+        }
+
+        @media (max-width: 500px) {
+            body {
+                padding: 15px;
+            }
+
+            .card {
+                padding: 14px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <main class="container">
+        <header class="header">
+            <div>
+                <h1>Attendance Records</h1>
+                <p>Review recorded student attendance.</p>
+            </div>
+
+            <a class="btn back"
+               href="{{ url_for('admin_dashboard') }}">
+                Dashboard
+            </a>
+        </header>
+
+        <section class="card">
+            <h2>Attendance History</h2>
+
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Student ID</th>
+                            <th>Date</th>
+                            <th>Time</th>
+                            <th>Latitude</th>
+                            <th>Longitude</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+                        {% for record in records %}
+                        <tr>
+                            <td>{{ record["student_id"] }}</td>
+                            <td>{{ record["attendance_date"] }}</td>
+                            <td>{{ record["attendance_time"] }}</td>
+                            <td>
+                                {{ record["latitude"] if record["latitude"] is not none else "N/A" }}
+                            </td>
+                            <td>
+                                {{ record["longitude"] if record["longitude"] is not none else "N/A" }}
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="5" class="empty">
+                                No attendance records available yet.
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="actions">
+                <a class="btn back"
+                   href="{{ url_for('admin_dashboard') }}">
+                    Back to Dashboard
+                </a>
+            </div>
+        </section>
+    </main>
+</body>
+</html>
