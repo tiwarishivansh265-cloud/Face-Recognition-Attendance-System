@@ -1,3 +1,4 @@
+
 import os
 import re
 import base64
@@ -19,11 +20,16 @@ from flask import (
 from werkzeug.security import generate_password_hash, check_password_hash
 
 
+# ==================================================
+# CONFIGURATION
+# ==================================================
+
 BASE_DIR = Path(__file__).resolve().parent
 DATABASE = BASE_DIR / "database" / "attendance.db"
 FACE_DIR = BASE_DIR / "face_data"
 
 app = Flask(__name__)
+
 app.config.update(
     SECRET_KEY=os.environ.get(
         "SECRET_KEY", "development-only-change-this-key"
@@ -37,13 +43,17 @@ app.config.update(
 )
 
 
+# ==================================================
 # DATABASE
+# ==================================================
 
 def get_db():
     DATABASE.parent.mkdir(parents=True, exist_ok=True)
+
     conn = sqlite3.connect(str(DATABASE), timeout=15)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys = ON")
+
     return conn
 
 
@@ -112,6 +122,7 @@ def init_db():
             "longitude": "REAL",
         })
 
+        # Create the initial admin only when environment variables are set.
         admin_username = os.environ.get("ADMIN_USERNAME", "admin")
         admin_password = os.environ.get("ADMIN_PASSWORD")
 
@@ -126,7 +137,9 @@ def init_db():
             ))
 
 
+# ==================================================
 # LOGIN HELPERS
+# ==================================================
 
 def login_required(role=None):
     def decorator(view):
@@ -159,7 +172,9 @@ def current_student():
         """, (student_id,)).fetchone()
 
 
-# FACE PHOTO VALIDATION
+# ==================================================
+# FACE IMAGE VALIDATION
+# ==================================================
 
 def decode_face_photo(data_url):
     if not data_url or len(data_url) > 4_000_000:
@@ -171,18 +186,14 @@ def decode_face_photo(data_url):
     )
 
     if not match:
-        raise ValueError(
-            "Invalid photo format. Capture the photo again."
-        )
+        raise ValueError("Invalid photo format. Capture again.")
 
     try:
         image_bytes = base64.b64decode(
             match.group(2), validate=True
         )
     except (binascii.Error, ValueError) as error:
-        raise ValueError(
-            "Captured photo could not be decoded."
-        ) from error
+        raise ValueError("Captured photo could not be decoded.") from error
 
     if not image_bytes or len(image_bytes) > 2_500_000:
         raise ValueError("Photo is empty or too large.")
@@ -218,22 +229,25 @@ def get_single_face_encoding(frame):
 
     if len(encodings) != 1:
         raise ValueError(
-            "Photo must contain exactly one clear face."
+            "Photo must contain exactly one clear, detectable face."
         )
 
     return encodings[0]
 
 
 def save_face_photo(data_url, student_id):
-    image_bytes, frame, extension = decode_face_photo(data_url)
+    _, frame, extension = decode_face_photo(data_url)
 
-    # Make sure the photo actually contains one detectable face.
+    # Validate that the captured image contains exactly one face.
     get_single_face_encoding(frame)
 
     FACE_DIR.mkdir(parents=True, exist_ok=True)
 
     filename = f"{uuid.uuid4().hex}{extension}"
     destination = FACE_DIR / filename
+
+    # Write the image only after validation.
+    _, image_bytes, _ = decode_face_photo(data_url)
     destination.write_bytes(image_bytes)
 
     return str(Path("face_data") / filename)
@@ -246,16 +260,17 @@ def enrolled_photo_path(relative_path):
         )
 
     path = (BASE_DIR / relative_path).resolve()
+    face_dir = FACE_DIR.resolve()
 
-    if FACE_DIR.resolve() not in path.parents or not path.is_file():
-        raise ValueError(
-            "Enrolled face photo is missing or invalid."
-        )
+    if face_dir not in path.parents or not path.is_file():
+        raise ValueError("Enrolled face photo is missing or invalid.")
 
     return path
 
 
-# LOGIN / LOGOUT
+# ==================================================
+# LOGIN AND LOGOUT
+# ==================================================
 
 @app.route("/", methods=["GET", "POST"])
 def login():
@@ -279,9 +294,7 @@ def login():
                     session["role"] = "admin"
                     session["username"] = account["username"]
 
-                    return redirect(
-                        url_for("admin_dashboard")
-                    )
+                    return redirect(url_for("admin_dashboard"))
 
             elif role == "student":
                 account = conn.execute("""
@@ -301,9 +314,7 @@ def login():
                         account["user_id"] or account["student_id"]
                     )
 
-                    return redirect(
-                        url_for("student_dashboard")
-                    )
+                    return redirect(url_for("student_dashboard"))
 
         flash("Invalid login details.")
 
@@ -317,7 +328,9 @@ def logout():
     return redirect(url_for("login"))
 
 
+# ==================================================
 # ADMIN DASHBOARD
+# ==================================================
 
 @app.route("/admin-dashboard")
 @login_required("admin")
@@ -338,7 +351,9 @@ def admin_dashboard():
     )
 
 
+# ==================================================
 # STUDENT DASHBOARD
+# ==================================================
 
 @app.route("/student-dashboard")
 @login_required("student")
@@ -349,9 +364,7 @@ def student_dashboard():
         session.clear()
         return redirect(url_for("login"))
 
-    return render_template(
-        "student_dashboard.html", student=student
-    )
+    return render_template("student_dashboard.html", student=student)
 
 
 @app.route("/my-profile")
@@ -363,11 +376,12 @@ def my_profile():
         session.clear()
         return redirect(url_for("login"))
 
-    return render_template(
-        "student_dashboard.html", student=student
-    )
+    return render_template("student_dashboard.html", student=student)
 
+
+# ==================================================
 # STUDENT REGISTRATION
+# ==================================================
 
 @app.route("/student-registration", methods=["GET", "POST"])
 @login_required("admin")
@@ -424,14 +438,8 @@ def student_registration():
                     )
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """, (
-                    student_id,
-                    name,
-                    generate_password_hash(password),
-                    user_id,
-                    student_class,
-                    division,
-                    mobile,
-                    email,
+                    student_id, name, generate_password_hash(password),
+                    user_id, student_class, division, mobile, email,
                     photo_path
                 ))
 
@@ -453,58 +461,73 @@ def student_registration():
     return render_template("student_registration.html")
 
 
-# FACE COLLECTION
+# ==================================================
+# FACE COLLECTION - UPDATED
+# ==================================================
 
 @app.route("/face-collection", methods=["GET", "POST"])
 @login_required("admin")
 def face_collection():
     if request.method == "POST":
         student_id = request.form.get("student_id", "").strip()
-        data_url = request.form.get("face_photo", "")
+        data_url = request.form.get("face_photo", "").strip()
 
-        with get_db() as conn:
-            student = conn.execute("""
-                SELECT student_id, face_photo_path
-                FROM students
-                WHERE student_id = ?
-            """, (student_id,)).fetchone()
+        if not student_id:
+            flash("Please select a registered student.")
+        elif not data_url:
+            flash("Please capture the student's face first.")
+        else:
+            photo_path = None
 
-        if student is None:
-            flash("Student ID not found. Register the student first.")
-            return redirect(url_for("face_collection"))
+            try:
+                with get_db() as conn:
+                    student = conn.execute("""
+                        SELECT student_id, face_photo_path
+                        FROM students
+                        WHERE student_id = ?
+                    """, (student_id,)).fetchone()
 
-        photo_path = None
+                if student is None:
+                    flash("Student not found. Register the student first.")
+                else:
+                    old_path = student["face_photo_path"]
 
-        try:
-            photo_path = save_face_photo(data_url, student_id)
+                    photo_path = save_face_photo(data_url, student_id)
 
-            with get_db() as conn:
-                conn.execute("""
-                    UPDATE students
-                    SET face_photo_path = ?
-                    WHERE student_id = ?
-                """, (photo_path, student_id))
+                    with get_db() as conn:
+                        conn.execute("""
+                            UPDATE students
+                            SET face_photo_path = ?
+                            WHERE student_id = ?
+                        """, (photo_path, student_id))
 
-            old_path = student["face_photo_path"]
+                    # Remove the old photo after the new path is saved.
+                    if old_path and old_path != photo_path:
+                        try:
+                            old_file = enrolled_photo_path(old_path)
+                            old_file.unlink(missing_ok=True)
+                        except (ValueError, OSError):
+                            app.logger.warning(
+                                "Could not remove previous face photo."
+                            )
 
-            if old_path and old_path != photo_path:
-                try:
-                    old_file = enrolled_photo_path(old_path)
-                    old_file.unlink(missing_ok=True)
-                except ValueError:
-                    pass
+                    flash(
+                        "Face enrollment successful! "
+                        "The student can now try live attendance."
+                    )
+                    return redirect(url_for("face_collection"))
 
-            flash(
-                "Face enrolled successfully. Student can now mark attendance."
-            )
-            return redirect(url_for("face_collection"))
+            except (ValueError, OSError, sqlite3.Error) as error:
+                if photo_path:
+                    try:
+                        (BASE_DIR / photo_path).unlink(missing_ok=True)
+                    except OSError:
+                        app.logger.exception(
+                            "Could not clean up enrollment photo."
+                        )
 
-        except (ValueError, OSError, sqlite3.Error) as error:
-            if photo_path:
-                (BASE_DIR / photo_path).unlink(missing_ok=True)
-
-            app.logger.warning("Face enrollment failed: %s", error)
-            flash("Face enrollment failed: " + str(error))
+                app.logger.warning("Face enrollment failed: %s", error)
+                flash("Face enrollment failed: " + str(error))
 
     with get_db() as conn:
         students = conn.execute("""
@@ -513,10 +536,15 @@ def face_collection():
             ORDER BY name
         """).fetchall()
 
-    return render_template("face_collection.html", students=students)
+    return render_template(
+        "face_collection.html",
+        students=students
+    )
 
 
+# ==================================================
 # STUDENT RECORDS
+# ==================================================
 
 @app.route("/student-records")
 @login_required("admin")
@@ -532,7 +560,9 @@ def student_records():
     return render_template("student_records.html", students=students)
 
 
-# ATTENDANCE RECORDS FOR ADMIN
+# ==================================================
+# ADMIN ATTENDANCE RECORDS
+# ==================================================
 
 @app.route("/attendance-records")
 @login_required("admin")
@@ -549,7 +579,9 @@ def attendance_records():
     return render_template("attendance.html", records=records)
 
 
+# ==================================================
 # REPORTS
+# ==================================================
 
 @app.route("/reports")
 @login_required("admin")
@@ -564,13 +596,8 @@ def reports():
 
         if start_date and end_date:
             try:
-                start = datetime.strptime(
-                    start_date, "%Y-%m-%d"
-                ).date()
-
-                end = datetime.strptime(
-                    end_date, "%Y-%m-%d"
-                ).date()
+                start = datetime.strptime(start_date, "%Y-%m-%d").date()
+                end = datetime.strptime(end_date, "%Y-%m-%d").date()
 
                 if start > end:
                     flash("Start date must not be after end date.")
@@ -598,7 +625,9 @@ def reports():
     )
 
 
+# ==================================================
 # CHANGE PASSWORD
+# ==================================================
 
 @app.route("/change-password", methods=["GET", "POST"])
 @login_required()
@@ -646,7 +675,9 @@ def change_password():
     return render_template("change_password.html")
 
 
+# ==================================================
 # STUDENT ATTENDANCE HISTORY
+# ==================================================
 
 @app.route("/my-attendance")
 @login_required("student")
@@ -669,7 +700,9 @@ def my_attendance():
     return render_template("attendance.html", records=records)
 
 
+# ==================================================
 # LIVE FACE ATTENDANCE
+# ==================================================
 
 @app.route("/mark-attendance", methods=["GET", "POST"])
 @login_required("student")
@@ -689,6 +722,7 @@ def mark_attendance():
         )
 
         captured_encoding = get_single_face_encoding(captured_bgr)
+
         reference_path = enrolled_photo_path(
             student["face_photo_path"]
         )
@@ -770,16 +804,14 @@ def mark_attendance():
         return redirect(url_for("mark_attendance"))
 
     except Exception:
-        app.logger.exception(
-            "Attendance verification/storage failed"
-        )
-        flash(
-            "Attendance could not be saved. Check the Flask terminal error."
-        )
+        app.logger.exception("Attendance verification/storage failed")
+        flash("Attendance could not be saved. Check the Flask terminal error.")
         return redirect(url_for("mark_attendance"))
 
 
+# ==================================================
 # FORGOT PASSWORD
+# ==================================================
 
 @app.route("/forgot-password", methods=["GET", "POST"])
 def forgot_password():
@@ -793,14 +825,18 @@ def forgot_password():
     return render_template("forgot_password.html")
 
 
+# ==================================================
 # HEALTH CHECK
+# ==================================================
 
 @app.route("/health")
 def health():
     return {"status": "ok"}
 
 
-# INITIALIZE DATABASE
+# ==================================================
+# START APPLICATION
+# ==================================================
 
 init_db()
 
