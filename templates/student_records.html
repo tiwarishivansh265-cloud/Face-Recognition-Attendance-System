@@ -1,1 +1,150 @@
 
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FRAMS | Student Records</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+            font-family: Arial, sans-serif;
+        }
+
+        body {
+            margin: 0;
+            padding: 25px 16px;
+            background: #091426;
+            color: #f1f5f9;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: auto;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 15px;
+            flex-wrap: wrap;
+            margin-bottom: 25px;
+        }
+
+        h1 {
+            font-size: 27px;
+        }
+
+        .subtitle {
+            color: #9fb0c9;
+            margin-top: 8px;
+        }
+
+        .card {
+            padding: 22px;
+            background: #12223b;
+            border: 1px solid #293d5a;
+            border-radius: 13px;
+        }
+
+        .table-wrap {
+            width: 100%;
+            overflow-x: auto;
+            margin-top: 20px;
+        }
+
+        table {
+            width: 100%;
+            min-width: 400px;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            padding: 14px;
+            text-align: left;
+            border-bottom: 1px solid #293d5a;
+        }
+
+        th {
+            color: #bfdbfe;
+            background: #1a304e;
+        }
+
+        .empty {
+            text-align: center;
+            color: #9fb0c9;
+            padding: 25px;
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 11px 15px;
+            background: #2563eb;
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+        }
+
+        .back {
+            background: #334155;
+        }
+
+        @media (max-width: 480px) {
+            .card {
+                padding: 14px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <main class="container">
+        <header>
+            <div>
+                <h1>Student Records</h1>
+                <p class="subtitle">
+                    View all registered students.
+                </p>
+            </div>
+
+            <a class="btn back"
+               href="{{ url_for('admin_dashboard') }}">
+                Dashboard
+            </a>
+        </header>
+
+        <section class="card">
+            <h2>Registered Students</h2>
+
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Student ID</th>
+                            <th>Student Name</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+                        {% for student in students %}
+                        <tr>
+                            <td>{{ student["student_id"] }}</td>
+                            <td>{{ student["name"] }}</td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="2" class="empty">
+                                No students registered yet.
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+</body>
+</html>
