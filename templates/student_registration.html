@@ -1,1 +1,173 @@
 
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FRAMS | Student Registration</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+            font-family: Arial, sans-serif;
+        }
+
+        body {
+            margin: 0;
+            padding: 30px 16px;
+            background: #091426;
+            color: #f1f5f9;
+        }
+
+        .container {
+            max-width: 700px;
+            margin: auto;
+        }
+
+        .header {
+            margin-bottom: 25px;
+        }
+
+        h1 {
+            font-size: 27px;
+        }
+
+        .subtitle {
+            color: #9fb0c9;
+            margin-top: 10px;
+            line-height: 1.6;
+        }
+
+        .form-card {
+            background: #12223b;
+            border: 1px solid #293d5a;
+            border-radius: 15px;
+            padding: 28px;
+        }
+
+        label {
+            display: block;
+            margin: 18px 0 8px;
+            font-size: 14px;
+            color: #dbeafe;
+        }
+
+        input {
+            width: 100%;
+            padding: 13px;
+            background: #09162a;
+            color: white;
+            border: 1px solid #344967;
+            border-radius: 8px;
+            outline: none;
+        }
+
+        input:focus {
+            border-color: #60a5fa;
+        }
+
+        button, .back {
+            display: inline-block;
+            margin-top: 23px;
+            padding: 12px 17px;
+            border: none;
+            border-radius: 8px;
+            color: white;
+            text-decoration: none;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        button {
+            background: #2563eb;
+        }
+
+        .back {
+            background: #334155;
+            margin-left: 8px;
+        }
+
+        .messages {
+            margin-top: 18px;
+            padding: 12px;
+            background: #18334f;
+            border-radius: 8px;
+            line-height: 1.5;
+        }
+
+        @media (max-width: 480px) {
+            .form-card {
+                padding: 20px;
+            }
+
+            .back {
+                margin-left: 0;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <main class="container">
+        <header class="header">
+            <h1>Student Registration</h1>
+            <p class="subtitle">
+                Register a student before collecting face enrollment data.
+            </p>
+        </header>
+
+        <section class="form-card">
+            <form method="POST"
+                  action="{{ url_for('student_registration') }}">
+
+                <label for="student_id">Student ID</label>
+                <input
+                    type="text"
+                    id="student_id"
+                    name="student_id"
+                    placeholder="e.g. STU1001"
+                    maxlength="30"
+                    required
+                >
+
+                <label for="name">Full Name</label>
+                <input
+                    type="text"
+                    id="name"
+                    name="name"
+                    placeholder="Enter student's full name"
+                    maxlength="100"
+                    required
+                >
+
+                <label for="password">Initial Password</label>
+                <input
+                    type="password"
+                    id="password"
+                    name="password"
+                    placeholder="Create an initial password"
+                    minlength="8"
+                    autocomplete="new-password"
+                    required
+                >
+
+                <button type="submit">Register Student</button>
+
+                <a class="back"
+                   href="{{ url_for('admin_dashboard') }}">
+                    Back to Dashboard
+                </a>
+            </form>
+
+            {% with messages = get_flashed_messages() %}
+                {% for message in messages %}
+                    <div class="messages" role="status">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endwith %}
+        </section>
+    </main>
+</body>
+</html>
+
