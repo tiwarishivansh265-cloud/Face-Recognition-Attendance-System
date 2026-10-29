@@ -1,11 +1,10 @@
 
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FRAMS | Face Data Collection</title>
+    <title>FRAMS | Face Collection</title>
 
     <style>
         * {
@@ -21,297 +20,308 @@
         }
 
         .container {
-            max-width: 1000px;
+            max-width: 1050px;
             margin: auto;
         }
 
-        h1 {
-            font-size: 27px;
-        }
+        h1 { font-size: 28px; }
+        h2 { font-size: 20px; }
 
-        .subtitle {
+        .muted {
             color: #9fb0c9;
-            margin: 10px 0 25px;
             line-height: 1.6;
         }
 
-        .layout {
-            display: grid;
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-            gap: 22px;
-        }
-
         .card {
-            padding: 23px;
-            border-radius: 14px;
             background: #12223b;
             border: 1px solid #293d5a;
+            border-radius: 15px;
+            padding: 24px;
+            margin: 20px 0;
         }
 
         label {
             display: block;
             margin: 15px 0 8px;
+            color: #dbeafe;
             font-size: 14px;
         }
 
-        input {
+        input, select {
             width: 100%;
             padding: 12px;
-            border-radius: 8px;
-            border: 1px solid #344967;
-            background: #09162a;
             color: white;
+            background: #09162a;
+            border: 1px solid #344967;
+            border-radius: 8px;
         }
 
-        .camera {
-            position: relative;
-            margin-top: 16px;
-            min-height: 250px;
-            aspect-ratio: 4 / 3;
-            background: #020817;
-            border: 1px solid #34506f;
-            border-radius: 12px;
-            overflow: hidden;
+        .grid {
             display: grid;
-            place-items: center;
+            grid-template-columns: 1fr 1fr;
+            gap: 22px;
+        }
+
+        .camera-frame {
+            position: relative;
+            overflow: hidden;
+            width: 100%;
+            aspect-ratio: 4 / 3;
+            background: #020617;
+            border: 1px solid #344967;
+            border-radius: 12px;
         }
 
         video {
             width: 100%;
             height: 100%;
             object-fit: cover;
-            position: absolute;
-            inset: 0;
+            transform: scaleX(-1);
         }
 
-        .face-frame {
-            width: 48%;
-            height: 66%;
+        .face-guide {
             position: absolute;
-            z-index: 2;
+            width: 48%;
+            height: 68%;
+            left: 26%;
+            top: 16%;
             border: 3px solid #22c55e;
-            border-radius: 45% 45% 40% 40%;
-            box-shadow: 0 0 12px #22c55e66;
+            border-radius: 50%;
+            box-shadow: 0 0 14px #22c55e66;
             pointer-events: none;
         }
 
-        .camera-message {
-            z-index: 3;
-            padding: 7px 10px;
-            border-radius: 6px;
-            background: #020817bb;
-            color: #bbf7d0;
-            font-size: 12px;
-            text-align: center;
+        .status {
+            padding: 12px;
+            margin-top: 12px;
+            border-radius: 8px;
+            background: #09162a;
+            color: #86efac;
+            line-height: 1.5;
+            font-size: 14px;
         }
 
-        .camera video:not([src]) {
-            display: none;
+        .buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 16px;
         }
 
         button, .back {
-            display: inline-block;
-            padding: 12px 15px;
-            margin-top: 15px;
+            padding: 12px 16px;
             border: none;
             border-radius: 8px;
-            background: #2563eb;
             color: white;
+            font-size: 14px;
             cursor: pointer;
             text-decoration: none;
-            font-size: 14px;
         }
 
-        button:disabled {
-            opacity: .5;
-            cursor: not-allowed;
+        .blue { background: #2563eb; }
+        .green { background: #15803d; }
+        .gray { background: #334155; }
+
+        .preview {
+            width: 100%;
+            min-height: 200px;
+            padding: 12px;
+            text-align: center;
+            background: #09162a;
+            border: 1px dashed #344967;
+            border-radius: 12px;
         }
 
-        .secondary {
-            background: #334155;
-            margin-left: 6px;
-        }
-
-        .status {
-            margin-top: 15px;
-            color: #a7f3d0;
-            font-size: 14px;
-            line-height: 1.6;
-            overflow-wrap: anywhere;
+        #photo {
+            display: none;
+            width: 100%;
+            max-width: 360px;
+            margin: 10px auto;
+            border-radius: 10px;
         }
 
         .note {
-            color: #9fb0c9;
+            color: #fcd34d;
             font-size: 13px;
             line-height: 1.6;
-            margin-top: 13px;
         }
 
-        @media (max-width: 700px) {
-            .layout {
-                grid-template-columns: 1fr;
-            }
+        @media (max-width: 650px) {
+            .grid { grid-template-columns: 1fr; }
+            .card { padding: 17px; }
         }
     </style>
 </head>
 
 <body>
-    <main class="container">
-        <h1>Face Data Collection</h1>
-        <p class="subtitle">
-            Enroll a registered student using the camera.
-            Allow camera and location permissions when prompted.
+<main class="container">
+    <h1>Face Data Collection</h1>
+    <p class="muted">
+        Select a registered student and capture a face photo for enrollment.
+    </p>
+
+    <section class="card">
+        <h2>Student Details</h2>
+
+        <label for="studentId">Student ID</label>
+        <input id="studentId" type="text"
+               placeholder="Enter registered Student ID"
+               maxlength="30" required>
+
+        <p class="muted">
+            Enter the same Student ID used during registration.
         </p>
+    </section>
 
-        <div class="layout">
-            <section class="card">
-                <h2>Student Details</h2>
+    <section class="card">
+        <h2>Live Camera & Face Capture</h2>
 
-                <label for="student_id">Student ID</label>
-                <input
-                    type="text"
-                    id="student_id"
-                    placeholder="Enter registered student ID"
-                    maxlength="30"
-                    required
-                >
-
-                <div class="camera">
-                    <video id="video" autoplay playsinline muted></video>
-                    <div class="face-frame"></div>
-                    <div class="camera-message" id="camera-message">
-                        Camera is not started
-                    </div>
+        <div class="grid">
+            <div>
+                <div class="camera-frame">
+                    <video id="camera" autoplay playsinline muted></video>
+                    <div class="face-guide"></div>
                 </div>
 
-                <button type="button" id="start-camera">
-                    Start Camera
-                </button>
+                <div class="status" id="status" role="status">
+                    Camera is not started.
+                </div>
 
-                <button type="button" id="capture" disabled>
-                    Capture Preview
-                </button>
+                <div class="buttons">
+                    <button class="blue" type="button" id="start">
+                        Start Camera
+                    </button>
+                    <button class="green" type="button" id="capture">
+                        Capture Face
+                    </button>
+                    <button class="gray" type="button" id="stop">
+                        Stop Camera
+                    </button>
+                </div>
+            </div>
 
-                <canvas id="snapshot" hidden></canvas>
+            <div>
+                <h2>Captured Photo</h2>
+                <div class="preview">
+                    <p class="muted" id="previewText">
+                        Captured photo will appear here.
+                    </p>
+                    <img id="photo" alt="Captured face preview">
+                </div>
+
+                <div class="buttons">
+                    <button class="green" type="button" id="save">
+                        Save Enrollment
+                    </button>
+                </div>
 
                 <p class="note">
-                    The green frame is a visual guide only; it does not
-                    detect a face. Captured previews are not uploaded.
+                    The green oval is a positioning guide, not automatic
+                    face detection. Saving enrollment requires backend support.
                 </p>
-            </section>
-
-            <section class="card">
-                <h2>GPS Location</h2>
-                <p class="note">
-                    Location access is optional until you configure
-                    your attendance verification policy.
-                </p>
-
-                <button type="button" id="get-location">
-                    Get Current Location
-                </button>
-
-                <p class="status" id="location-status" aria-live="polite">
-                    Location has not been requested.
-                </p>
-
-                <p class="status" id="capture-status" aria-live="polite">
-                    No preview captured.
-                </p>
-
-                <button type="button" class="secondary" id="stop-camera">
-                    Stop Camera
-                </button>
-
-                <a class="back" href="{{ url_for('admin_dashboard') }}">
-                    Back to Dashboard
-                </a>
-            </section>
+            </div>
         </div>
-    </main>
+    </section>
 
-    <script>
-        const video = document.getElementById("video");
-        const canvas = document.getElementById("snapshot");
-        const startButton = document.getElementById("start-camera");
-        const captureButton = document.getElementById("capture");
-        const stopButton = document.getElementById("stop-camera");
-        const cameraMessage = document.getElementById("camera-message");
-        const captureStatus = document.getElementById("capture-status");
-        const locationStatus = document.getElementById("location-status");
+    <div class="buttons">
+        <a class="back gray" href="{{ url_for('admin_dashboard') }}">
+            Back to Dashboard
+        </a>
+    </div>
+</main>
 
-        let stream = null;
+<canvas id="canvas" hidden></canvas>
 
-        startButton.addEventListener("click", async () => {
+<script>
+(() => {
+    const video = document.getElementById("camera");
+    const canvas = document.getElementById("canvas");
+    const photo = document.getElementById("photo");
+    const status = document.getElementById("status");
+    const previewText = document.getElementById("previewText");
+    const studentId = document.getElementById("studentId");
+
+    let stream = null;
+    let capturedImage = null;
+
+    document.getElementById("start").addEventListener("click", async () => {
+        try {
             if (!navigator.mediaDevices?.getUserMedia) {
-                cameraMessage.textContent =
+                status.textContent =
                     "Camera requires HTTPS or localhost.";
                 return;
             }
 
-            try {
-                stream = await navigator.mediaDevices.getUserMedia({
-                    video: { facingMode: "user" },
-                    audio: false
-                });
+            stream?.getTracks().forEach(track => track.stop());
 
-                video.srcObject = stream;
-                await video.play();
-
-                cameraMessage.textContent = "Camera is active";
-                captureButton.disabled = false;
-            } catch (error) {
-                cameraMessage.textContent =
-                    "Camera unavailable. Check browser permission.";
-            }
-        });
-
-        captureButton.addEventListener("click", () => {
-            if (!stream || video.videoWidth === 0) return;
-
-            canvas.width = video.videoWidth;
-            canvas.height = video.videoHeight;
-
-            const context = canvas.getContext("2d");
-            context.drawImage(video, 0, 0);
-
-            captureStatus.textContent =
-                "Preview captured locally. Face enrollment is not yet connected.";
-        });
-
-        stopButton.addEventListener("click", () => {
-            if (stream) {
-                stream.getTracks().forEach(track => track.stop());
-            }
-
-            stream = null;
-            video.srcObject = null;
-            captureButton.disabled = true;
-            cameraMessage.textContent = "Camera stopped";
-        });
-
-        document.getElementById("get-location").addEventListener("click", () => {
-            if (!navigator.geolocation) {
-                locationStatus.textContent =
-                    "Geolocation is not supported by this browser.";
-                return;
-            }
-
-            locationStatus.textContent = "Requesting location permission...";
-
-            navigator.geolocation.getCurrentPosition(
-                position => {
-                    locationStatus.textContent =
-                        "Latitude: " + position.coords.latitude +
-                        " | Longitude: " + position.coords.longitude;
+            stream = await navigator.mediaDevices.getUserMedia({
+                video: {
+                    facingMode: "user",
+                    width: { ideal: 640 },
+                    height: { ideal: 480 }
                 },
-                () => {
-                    locationStatus.textContent =
-                        "Location unavailable or permission denied.";
-                },
-                { enableHighAccuracy: true, timeout: 10000 }
-            );
-        });
-    </script>
+                audio: false
+            });
+
+            video.srcObject = stream;
+            await video.play();
+            status.textContent =
+                "Camera is live. Keep your face inside the green guide.";
+        } catch (error) {
+            status.textContent =
+                "Camera access failed. Check browser permission and try again.";
+        }
+    });
+
+    document.getElementById("capture").addEventListener("click", () => {
+        if (!stream || !video.videoWidth) {
+            status.textContent = "Please start the camera first.";
+            return;
+        }
+
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+
+        const ctx = canvas.getContext("2d");
+        ctx.translate(canvas.width, 0);
+        ctx.scale(-1, 1);
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+        capturedImage = canvas.toDataURL("image/jpeg", 0.85);
+        photo.src = capturedImage;
+        photo.style.display = "block";
+        previewText.style.display = "none";
+
+        status.textContent = "Photo captured in browser preview.";
+    });
+
+    document.getElementById("save").addEventListener("click", () => {
+        if (!studentId.value.trim()) {
+            status.textContent = "Enter the Student ID first.";
+            studentId.focus();
+            return;
+        }
+
+        if (!capturedImage) {
+            status.textContent = "Capture a photo before saving.";
+            return;
+        }
+
+        status.textContent =
+            "Photo captured, but server enrollment is not connected yet.";
+    });
+
+    document.getElementById("stop").addEventListener("click", () => {
+        stream?.getTracks().forEach(track => track.stop());
+        stream = null;
+        video.srcObject = null;
+        status.textContent = "Camera stopped.";
+    });
+
+    window.addEventListener("pagehide", () => {
+        stream?.getTracks().forEach(track => track.stop());
+    });
+})();
+</script>
 </body>
 </html>
