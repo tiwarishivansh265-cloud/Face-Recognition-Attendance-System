@@ -1,12 +1,14 @@
-import cv2
-import numpy as np
-import face_recognition
+
 import os
 import re
 import base64
 import binascii
 import sqlite3
 import uuid
+
+import cv2
+import numpy as np
+import face_recognition
 
 from pathlib import Path
 from datetime import datetime
@@ -18,6 +20,10 @@ from flask import (
 )
 from werkzeug.security import generate_password_hash, check_password_hash
 
+
+# --------------------------------------------------
+# APP CONFIGURATION
+# --------------------------------------------------
 
 BASE_DIR = Path(__file__).resolve().parent
 DATABASE = BASE_DIR / "database" / "attendance.db"
@@ -34,6 +40,10 @@ app.config["SESSION_COOKIE_SECURE"] = (
     os.environ.get("COOKIE_SECURE", "false").lower() == "true"
 )
 
+
+# --------------------------------------------------
+# DATABASE
+# --------------------------------------------------
 
 def get_db():
     DATABASE.parent.mkdir(parents=True, exist_ok=True)
@@ -61,7 +71,6 @@ def init_db():
             )
         """)
 
-        # Safely add new columns to an existing database.
         columns = {
             row["name"]
             for row in conn.execute("PRAGMA table_info(students)")
@@ -83,8 +92,7 @@ def init_db():
                 )
 
         conn.execute("""
-            CREATE UNIQUE INDEX IF NOT EXISTS
-            idx_students_user_id
+            CREATE UNIQUE INDEX IF NOT EXISTS idx_students_user_id
             ON students(user_id)
             WHERE user_id IS NOT NULL
         """)
@@ -103,6 +111,7 @@ def init_db():
             )
         """)
 
+        # Create the first admin using environment variables.
         admin_username = os.environ.get("ADMIN_USERNAME", "admin")
         admin_password = os.environ.get("ADMIN_PASSWORD")
 
@@ -115,6 +124,10 @@ def init_db():
                 generate_password_hash(admin_password)
             ))
 
+
+# --------------------------------------------------
+# LOGIN HELPERS
+# --------------------------------------------------
 
 def login_required(role=None):
     def decorator(view):
@@ -140,14 +153,17 @@ def current_student():
     with get_db() as conn:
         return conn.execute("""
             SELECT student_id, user_id, name, student_class,
-                   division, mobile, email
+                   division, mobile, email, face_photo_path
             FROM students
             WHERE student_id = ?
         """, (student_id,)).fetchone()
 
 
+# --------------------------------------------------
+# FACE PHOTO STORAGE
+# --------------------------------------------------
+
 def save_face_photo(data_url, student_id):
-    """Validate a captured JPEG/PNG data URL and save it locally."""
     if not data_url or len(data_url) > 4_000_000:
         raise ValueError("Please capture a valid face photo.")
 
@@ -173,24 +189,30 @@ def save_face_photo(data_url, student_id):
         valid_signature = image_bytes.startswith(b"\xff\xd8\xff")
         extension = ".jpg"
     else:
-        valid_signature = image_bytes.startswith(
-            b"\x89PNG\r\n\x1a\n"
-        )
+        valid_signature = image_bytes.startswith(b"\x89PNG\r\n\x1a\n")
         extension = ".png"
 
     if not valid_signature:
         raise ValueError("The photo file is invalid.")
 
-    FACE_DIR.mkdir(parents=True, exist_ok=True)
+    # Confirm that OpenCV can read the image.
+    image_array = np.frombuffer(image_bytes, dtype=np.uint8)
+    decoded_image = cv2.imdecode(image_array, cv2.IMREAD_COLOR)
 
-    # Never use a user-supplied filename.
+    if decoded_image is None:
+        raise ValueError("The image could not be opened.")
+
+    FACE_DIR.mkdir(parents=True, exist_ok=True)
     filename = f"{uuid.uuid4().hex}{extension}"
     destination = FACE_DIR / filename
     destination.write_bytes(image_bytes)
 
-    # Store a relative path, not an absolute computer path.
     return str(Path("face_data") / filename)
 
+
+# --------------------------------------------------
+# LOGIN / LOGOUT
+# --------------------------------------------------
 
 @app.route("/", methods=["GET", "POST"])
 def login():
@@ -203,7 +225,8 @@ def login():
             if role == "admin":
                 account = conn.execute("""
                     SELECT username, password_hash
-                    FROM admins WHERE username = ?
+                    FROM admins
+                    WHERE username = ?
                 """, (username,)).fetchone()
 
                 if account and check_password_hash(
@@ -215,12 +238,11 @@ def login():
                     return redirect(url_for("admin_dashboard"))
 
             elif role == "student":
-                # New accounts use user_id. student_id remains supported
-                # for older accounts.
                 account = conn.execute("""
                     SELECT student_id, user_id, name, password_hash
                     FROM students
                     WHERE user_id = ? OR student_id = ?
+                    LIMIT 1
                 """, (username, username)).fetchone()
 
                 if account and check_password_hash(
@@ -238,6 +260,17 @@ def login():
 
     return render_template("login.html")
 
+
+@app.route("/logout")
+def logout():
+    session.clear()
+    flash("You have been logged out.")
+    return redirect(url_for("login"))
+
+
+# --------------------------------------------------
+# ADMIN DASHBOARD
+# --------------------------------------------------
 
 @app.route("/admin-dashboard")
 @login_required("admin")
@@ -258,6 +291,10 @@ def admin_dashboard():
     )
 
 
+# --------------------------------------------------
+# STUDENT DASHBOARD
+# --------------------------------------------------
+
 @app.route("/student-dashboard")
 @login_required("student")
 def student_dashboard():
@@ -269,6 +306,22 @@ def student_dashboard():
 
     return render_template("student_dashboard.html", student=student)
 
+
+@app.route("/my-profile")
+@login_required("student")
+def my_profile():
+    student = current_student()
+
+    if student is None:
+        session.clear()
+        return redirect(url_for("login"))
+
+    return render_template("student_dashboard.html", student=student)
+
+
+# --------------------------------------------------
+# STUDENT REGISTRATION
+# --------------------------------------------------
 
 @app.route("/student-registration", methods=["GET", "POST"])
 @login_required("admin")
@@ -286,7 +339,7 @@ def student_registration():
 
         if not all([
             student_id, name, student_class, division,
-            mobile, email, user_id
+            mobile, email, user_id, password
         ]):
             flash("Please complete all student details.")
             return render_template("student_registration.html")
@@ -314,7 +367,6 @@ def student_registration():
         photo_path = None
 
         try:
-            # Validate and save the photo before inserting the student.
             photo_path = save_face_photo(face_photo, student_id)
 
             with get_db() as conn:
@@ -342,26 +394,34 @@ def student_registration():
         except sqlite3.IntegrityError:
             if photo_path:
                 (BASE_DIR / photo_path).unlink(missing_ok=True)
-
             flash("Student ID or Login User ID already exists.")
 
         except ValueError as error:
+            if photo_path:
+                (BASE_DIR / photo_path).unlink(missing_ok=True)
             flash(str(error))
 
         except OSError:
             if photo_path:
                 (BASE_DIR / photo_path).unlink(missing_ok=True)
-
             flash("Could not save the face photo. Please try again.")
 
     return render_template("student_registration.html")
 
+
+# --------------------------------------------------
+# FACE COLLECTION PAGE
+# --------------------------------------------------
 
 @app.route("/face-collection")
 @login_required("admin")
 def face_collection():
     return render_template("face_collection.html")
 
+
+# --------------------------------------------------
+# STUDENT RECORDS
+# --------------------------------------------------
 
 @app.route("/student-records")
 @login_required("admin")
@@ -377,6 +437,10 @@ def student_records():
     return render_template("student_records.html", students=students)
 
 
+# --------------------------------------------------
+# ADMIN ATTENDANCE RECORDS
+# --------------------------------------------------
+
 @app.route("/attendance-records")
 @login_required("admin")
 def attendance_records():
@@ -390,6 +454,10 @@ def attendance_records():
 
     return render_template("attendance.html", records=records)
 
+
+# --------------------------------------------------
+# REPORTS
+# --------------------------------------------------
 
 @app.route("/reports")
 @login_required("admin")
@@ -415,6 +483,7 @@ def reports():
                         SELECT COUNT(*) FROM attendance
                         WHERE attendance_date BETWEEN ? AND ?
                     """, (start_date, end_date)).fetchone()[0]
+
             except ValueError:
                 flash("Invalid date range.")
                 attendance_count = 0
@@ -432,6 +501,10 @@ def reports():
     )
 
 
+# --------------------------------------------------
+# CHANGE PASSWORD
+# --------------------------------------------------
+
 @app.route("/change-password", methods=["GET", "POST"])
 @login_required()
 def change_password():
@@ -444,8 +517,10 @@ def change_password():
 
         if len(new) < 8:
             flash("New password must contain at least 8 characters.")
+
         elif new != confirm:
             flash("New passwords do not match.")
+
         else:
             with get_db() as conn:
                 if role == "admin":
@@ -453,15 +528,15 @@ def change_password():
                         SELECT password_hash FROM admins
                         WHERE username = ?
                     """, (session.get("username"),)).fetchone()
-                    table, key = "admins", session.get("username")
-                    column = "username"
+                    table, key_column = "admins", "username"
+                    key_value = session.get("username")
                 else:
                     account = conn.execute("""
                         SELECT password_hash FROM students
                         WHERE student_id = ?
                     """, (session.get("student_id"),)).fetchone()
-                    table, key = "students", session.get("student_id")
-                    column = "student_id"
+                    table, key_column = "students", "student_id"
+                    key_value = session.get("student_id")
 
                 if not account or not check_password_hash(
                     account["password_hash"], current
@@ -470,13 +545,17 @@ def change_password():
                 else:
                     conn.execute(
                         f"UPDATE {table} SET password_hash = ? "
-                        f"WHERE {column} = ?",
-                        (generate_password_hash(new), key)
+                        f"WHERE {key_column} = ?",
+                        (generate_password_hash(new), key_value)
                     )
                     flash("Password updated successfully.")
 
     return render_template("change_password.html")
 
+
+# --------------------------------------------------
+# STUDENT ATTENDANCE HISTORY
+# --------------------------------------------------
 
 @app.route("/my-attendance")
 @login_required("student")
@@ -498,24 +577,15 @@ def my_attendance():
     return render_template("attendance.html", records=records)
 
 
-@app.route("/my-profile")
-@login_required("student")
-def my_profile():
-    student = current_student()
-
-    if student is None:
-        session.clear()
-        return redirect(url_for("login"))
-
-    return render_template("student_dashboard.html", student=student)
-
-
+# --------------------------------------------------
+# LIVE FACE ATTENDANCE
+# --------------------------------------------------
 
 @app.route("/mark-attendance", methods=["GET", "POST"])
 @login_required("student")
 def mark_attendance():
     if request.method == "GET":
-        return render_template("attendance.html", records=[])
+        return render_template("live_attendance.html")
 
     student = current_student()
 
@@ -527,33 +597,33 @@ def mark_attendance():
     latitude_text = request.form.get("latitude", "").strip()
     longitude_text = request.form.get("longitude", "").strip()
 
-    if not data_url.startswith("data:image/"):
-        flash("Please capture your face photo first.")
-        return redirect(url_for("my_attendance"))
+    match = re.fullmatch(
+        r"data:image/(jpeg|png);base64,([A-Za-z0-9+/=]+)",
+        data_url
+    )
+
+    if not match:
+        flash("Please capture a valid face photo first.")
+        return redirect(url_for("mark_attendance"))
 
     try:
-        # Decode the captured image in memory.
-        header, encoded = data_url.split(",", 1)
+        image_bytes = base64.b64decode(match.group(2), validate=True)
 
-        if len(encoded) > 4_000_000:
-            raise ValueError("Captured photo is too large.")
-
-        image_bytes = base64.b64decode(encoded, validate=True)
-        if len(image_bytes) > 2_500_000:
-            raise ValueError("Captured photo is too large.")
+        if not image_bytes or len(image_bytes) > 2_500_000:
+            raise ValueError("Photo is empty or too large.")
 
         image_array = np.frombuffer(image_bytes, dtype=np.uint8)
         captured_bgr = cv2.imdecode(image_array, cv2.IMREAD_COLOR)
 
         if captured_bgr is None:
-            raise ValueError("Invalid captured image.")
+            raise ValueError("Invalid image.")
 
         captured_rgb = cv2.cvtColor(captured_bgr, cv2.COLOR_BGR2RGB)
         captured_faces = face_recognition.face_encodings(captured_rgb)
 
         if len(captured_faces) != 1:
-            flash("Please capture a clear photo showing exactly one face.")
-            return redirect(url_for("my_attendance"))
+            flash("Please capture a clear photo with exactly one face.")
+            return redirect(url_for("mark_attendance"))
 
         with get_db() as conn:
             account = conn.execute("""
@@ -564,13 +634,19 @@ def mark_attendance():
 
             if not account or not account["face_photo_path"]:
                 flash("No enrolled face photo found. Contact the administrator.")
-                return redirect(url_for("my_attendance"))
+                return redirect(url_for("mark_attendance"))
 
-            reference_path = BASE_DIR / account["face_photo_path"]
+            reference_path = (
+                BASE_DIR / account["face_photo_path"]
+            ).resolve()
+
+            if FACE_DIR.resolve() not in reference_path.parents:
+                flash("Stored face photo path is invalid.")
+                return redirect(url_for("mark_attendance"))
 
             if not reference_path.is_file():
-                flash("Enrolled face photo is unavailable. Contact the administrator.")
-                return redirect(url_for("my_attendance"))
+                flash("Enrolled face photo is unavailable.")
+                return redirect(url_for("mark_attendance"))
 
             reference_image = face_recognition.load_image_file(
                 str(reference_path)
@@ -578,34 +654,40 @@ def mark_attendance():
             reference_faces = face_recognition.face_encodings(reference_image)
 
             if len(reference_faces) != 1:
-                flash("The enrolled face photo is invalid. Contact the administrator.")
-                return redirect(url_for("my_attendance"))
+                flash("The enrolled photo must contain exactly one clear face.")
+                return redirect(url_for("mark-attendance"))
 
             distances = face_recognition.face_distance(
                 [reference_faces[0]], captured_faces[0]
             )
 
-            # Conservative starting threshold; test and tune before real use.
             if len(distances) != 1 or float(distances[0]) > 0.45:
                 flash("Face did not match. Attendance was not marked.")
-                return redirect(url_for("my_attendance"))
+                return redirect(url_for("mark_attendance"))
 
             latitude = None
             longitude = None
 
             if latitude_text or longitude_text:
                 try:
+                    if not latitude_text or not longitude_text:
+                        raise ValueError
+
                     latitude = float(latitude_text)
                     longitude = float(longitude_text)
 
-                    if not (-90 <= latitude <= 90 and
-                            -180 <= longitude <= 180):
+                    if not (
+                        -90 <= latitude <= 90
+                        and -180 <= longitude <= 180
+                    ):
                         raise ValueError
+
                 except ValueError:
                     flash("Invalid GPS coordinates.")
-                    return redirect(url_for("my_attendance"))
+                    return redirect(url_for("mark_attendance"))
 
             now = datetime.now()
+
             try:
                 conn.execute("""
                     INSERT INTO attendance (
@@ -620,6 +702,7 @@ def mark_attendance():
                     latitude,
                     longitude
                 ))
+
             except sqlite3.IntegrityError:
                 flash("Attendance has already been marked today.")
                 return redirect(url_for("my_attendance"))
@@ -628,27 +711,45 @@ def mark_attendance():
 
     except (ValueError, binascii.Error):
         flash("Could not read the captured photo. Please try again.")
+
     except Exception:
         app.logger.exception("Face verification failed")
         flash("Face verification could not be completed. Try again.")
 
     return redirect(url_for("my_attendance"))
-    
 
 
-@app.route("/logout")
-def logout():
-    session.clear()
-    return redirect(url_for("login"))
+# --------------------------------------------------
+# FORGOT PASSWORD
+# --------------------------------------------------
 
+@app.route("/forgot-password", methods=["GET", "POST"])
+def forgot_password():
+    if request.method == "POST":
+        flash(
+            "For account security, contact the administrator "
+            "to reset your password."
+        )
+        return redirect(url_for("login"))
+
+    return render_template("forgot_password.html")
+
+
+# --------------------------------------------------
+# HEALTH CHECK
+# --------------------------------------------------
 
 @app.route("/health")
 def health():
     return {"status": "ok"}
 
 
+# --------------------------------------------------
+# INITIALIZE DATABASE
+# --------------------------------------------------
+
 init_db()
 
 
 if __name__ == "__main__":
-    app.run(debug=False)
+    app.run(debug=os.environ.get("FLASK_DEBUG", "false").lower() == "true")
