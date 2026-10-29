@@ -20,7 +20,7 @@
         }
 
         .container {
-            max-width: 700px;
+            max-width: 1000px;
             margin: auto;
         }
 
@@ -29,20 +29,41 @@
         }
 
         h1 {
-            font-size: 27px;
+            font-size: 28px;
+            margin-bottom: 8px;
         }
 
-        .subtitle {
+        h2 {
+            font-size: 20px;
+            margin-top: 0;
+        }
+
+        .subtitle, .muted {
             color: #9fb0c9;
-            margin-top: 10px;
             line-height: 1.6;
         }
 
-        .form-card {
+        .form-card, .camera-card {
             background: #12223b;
             border: 1px solid #293d5a;
             border-radius: 15px;
-            padding: 28px;
+            padding: 25px;
+            margin-bottom: 22px;
+        }
+
+        .section-title {
+            color: #93c5fd;
+            margin-bottom: 8px;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 0 18px;
+        }
+
+        .field {
+            min-width: 0;
         }
 
         label {
@@ -59,16 +80,87 @@
             color: white;
             border: 1px solid #344967;
             border-radius: 8px;
-            outline: none;
         }
 
         input:focus {
+            outline: 2px solid #60a5fa;
             border-color: #60a5fa;
+        }
+
+        .camera-layout {
+            display: grid;
+            grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.8fr);
+            gap: 22px;
+            align-items: start;
+            margin-top: 18px;
+        }
+
+        .camera-frame {
+            position: relative;
+            width: 100%;
+            overflow: hidden;
+            background: #020617;
+            border: 1px solid #344967;
+            border-radius: 12px;
+            aspect-ratio: 4 / 3;
+        }
+
+        #camera {
+            width: 100%;
+            height: 100%;
+            display: block;
+            object-fit: cover;
+            transform: scaleX(-1);
+        }
+
+        .face-guide {
+            position: absolute;
+            width: 48%;
+            height: 68%;
+            left: 26%;
+            top: 16%;
+            border: 3px solid #22c55e;
+            border-radius: 50%;
+            box-shadow: 0 0 14px #22c55e55;
+            pointer-events: none;
+        }
+
+        .camera-status {
+            padding: 12px;
+            margin-top: 12px;
+            border-radius: 8px;
+            background: #09162a;
+            color: #86efac;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        .preview-box {
+            min-height: 200px;
+            padding: 12px;
+            background: #09162a;
+            border: 1px dashed #344967;
+            border-radius: 12px;
+            text-align: center;
+        }
+
+        #capturedPhoto {
+            display: none;
+            width: 100%;
+            max-width: 300px;
+            margin: 10px auto 0;
+            border-radius: 10px;
+        }
+
+        .button-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 18px;
         }
 
         button, .back {
             display: inline-block;
-            margin-top: 23px;
             padding: 12px 17px;
             border: none;
             border-radius: 8px;
@@ -78,13 +170,21 @@
             font-size: 14px;
         }
 
-        button {
+        button:disabled {
+            opacity: 0.55;
+            cursor: not-allowed;
+        }
+
+        .primary {
             background: #2563eb;
         }
 
-        .back {
+        .success {
+            background: #15803d;
+        }
+
+        .secondary {
             background: #334155;
-            margin-left: 8px;
         }
 
         .messages {
@@ -95,79 +195,270 @@
             line-height: 1.5;
         }
 
-        @media (max-width: 480px) {
-            .form-card {
-                padding: 20px;
+        .note {
+            color: #fcd34d;
+            font-size: 13px;
+            line-height: 1.6;
+        }
+
+        @media (max-width: 650px) {
+            .form-grid, .camera-layout {
+                grid-template-columns: 1fr;
             }
 
-            .back {
-                margin-left: 0;
+            .form-card, .camera-card {
+                padding: 18px;
+            }
+
+            h1 {
+                font-size: 24px;
             }
         }
     </style>
 </head>
 
 <body>
-    <main class="container">
-        <header class="header">
-            <h1>Student Registration</h1>
-            <p class="subtitle">
-                Register a student before collecting face enrollment data.
-            </p>
-        </header>
+<main class="container">
+    <header class="header">
+        <h1>Student Registration</h1>
+        <p class="subtitle">
+            Register student details, create login credentials and capture
+            a face photo for enrollment.
+        </p>
+    </header>
+
+    <form method="POST"
+          action="{{ url_for('student_registration') }}"
+          id="registrationForm">
 
         <section class="form-card">
-            <form method="POST"
-                  action="{{ url_for('student_registration') }}">
+            <h2 class="section-title">Student Information</h2>
+            <p class="muted">Enter the student's personal and academic details.</p>
 
-                <label for="student_id">Student ID</label>
-                <input
-                    type="text"
-                    id="student_id"
-                    name="student_id"
-                    placeholder="e.g. STU1001"
-                    maxlength="30"
-                    required
-                >
+            <div class="form-grid">
+                <div class="field">
+                    <label for="student_id">Student ID</label>
+                    <input type="text" id="student_id" name="student_id"
+                           maxlength="30" placeholder="e.g. STU1001" required>
+                </div>
 
-                <label for="name">Full Name</label>
-                <input
-                    type="text"
-                    id="name"
-                    name="name"
-                    placeholder="Enter student's full name"
-                    maxlength="100"
-                    required
-                >
+                <div class="field">
+                    <label for="name">Full Name</label>
+                    <input type="text" id="name" name="name"
+                           maxlength="100" placeholder="Enter full name" required>
+                </div>
 
-                <label for="password">Initial Password</label>
-                <input
-                    type="password"
-                    id="password"
-                    name="password"
-                    placeholder="Create an initial password"
-                    minlength="8"
-                    autocomplete="new-password"
-                    required
-                >
+                <div class="field">
+                    <label for="student_class">Class / Course</label>
+                    <input type="text" id="student_class" name="student_class"
+                           maxlength="50" placeholder="e.g. BCA 2nd Year" required>
+                </div>
 
-                <button type="submit">Register Student</button>
+                <div class="field">
+                    <label for="division">Division</label>
+                    <input type="text" id="division" name="division"
+                           maxlength="20" placeholder="e.g. A" required>
+                </div>
 
-                <a class="back"
+                <div class="field">
+                    <label for="mobile">Mobile Number</label>
+                    <input type="tel" id="mobile" name="mobile"
+                           inputmode="numeric" pattern="[0-9]{10}"
+                           minlength="10" maxlength="10"
+                           placeholder="10-digit mobile number" required>
+                </div>
+
+                <div class="field">
+                    <label for="email">Email ID</label>
+                    <input type="email" id="email" name="email"
+                           maxlength="254" placeholder="student@example.com" required>
+                </div>
+            </div>
+        </section>
+
+        <section class="form-card">
+            <h2 class="section-title">Login Credentials</h2>
+            <p class="muted">These details will be used by the student to log in.</p>
+
+            <div class="form-grid">
+                <div class="field">
+                    <label for="user_id">Login User ID</label>
+                    <input type="text" id="user_id" name="user_id"
+                           maxlength="50" autocomplete="username"
+                           placeholder="Create a unique user ID" required>
+                </div>
+
+                <div class="field">
+                    <label for="password">Login Password</label>
+                    <input type="password" id="password" name="password"
+                           minlength="8" autocomplete="new-password"
+                           placeholder="Minimum 8 characters" required>
+                </div>
+            </div>
+        </section>
+
+        <section class="camera-card">
+            <h2 class="section-title">Live Face Capture</h2>
+            <p class="muted">
+                Allow camera access, look toward the camera and keep your face
+                inside the green guide.
+            </p>
+
+            <div class="camera-layout">
+                <div>
+                    <div class="camera-frame">
+                        <video id="camera" autoplay playsinline muted></video>
+                        <div class="face-guide"></div>
+                    </div>
+
+                    <div id="cameraStatus" class="camera-status" role="status">
+                        Camera is not started.
+                    </div>
+
+                    <div class="button-row">
+                        <button type="button" class="primary" id="startCamera">
+                            Start Camera
+                        </button>
+
+                        <button type="button" class="success" id="captureFace">
+                            Capture Face
+                        </button>
+
+                        <button type="button" class="secondary" id="stopCamera">
+                            Stop Camera
+                        </button>
+                    </div>
+                </div>
+
+                <div>
+                    <h3>Captured Photo</h3>
+                    <div class="preview-box">
+                        <p id="previewMessage" class="muted">
+                            Your captured photo will appear here.
+                        </p>
+                        <img id="capturedPhoto" alt="Captured student face preview">
+                    </div>
+                    <p class="note">
+                        The green oval is a positioning guide, not automatic
+                        face detection. Actual face verification must be
+                        implemented in the backend.
+                    </p>
+                </div>
+            </div>
+
+            <canvas id="faceCanvas" hidden></canvas>
+            <input type="hidden" id="facePhoto" name="face_photo">
+
+            <p class="note">
+                Camera access generally requires HTTPS or localhost.
+                The photo is only captured in the browser here; saving it
+                securely to the server requires backend support.
+            </p>
+        </section>
+
+        <section class="form-card">
+            <div class="button-row">
+                <button type="submit" class="primary">Register Student</button>
+                <a class="back secondary"
                    href="{{ url_for('admin_dashboard') }}">
                     Back to Dashboard
                 </a>
-            </form>
+            </div>
 
             {% with messages = get_flashed_messages() %}
                 {% for message in messages %}
-                    <div class="messages" role="status">
-                        {{ message }}
-                    </div>
+                    <div class="messages" role="status">{{ message }}</div>
                 {% endfor %}
             {% endwith %}
         </section>
-    </main>
+    </form>
+</main>
+
+<script>
+(() => {
+    const video = document.getElementById("camera");
+    const canvas = document.getElementById("faceCanvas");
+    const photo = document.getElementById("capturedPhoto");
+    const photoInput = document.getElementById("facePhoto");
+    const statusText = document.getElementById("cameraStatus");
+    const previewMessage = document.getElementById("previewMessage");
+
+    let cameraStream = null;
+
+    document.getElementById("startCamera").addEventListener("click", async () => {
+        try {
+            if (!navigator.mediaDevices ||
+                !navigator.mediaDevices.getUserMedia) {
+                statusText.textContent =
+                    "Camera requires HTTPS or localhost in a supported browser.";
+                return;
+            }
+
+            if (cameraStream) {
+                cameraStream.getTracks().forEach(track => track.stop());
+            }
+
+            cameraStream = await navigator.mediaDevices.getUserMedia({
+                video: {
+                    facingMode: "user",
+                    width: { ideal: 640 },
+                    height: { ideal: 480 }
+                },
+                audio: false
+            });
+
+            video.srcObject = cameraStream;
+            await video.play();
+
+            statusText.textContent =
+                "Camera is live. Align your face inside the green guide.";
+        } catch (error) {
+            statusText.textContent =
+                "Could not access camera. Check browser permission and try again.";
+        }
+    });
+
+    document.getElementById("captureFace").addEventListener("click", () => {
+        if (!cameraStream || !video.videoWidth || video.readyState < 2) {
+            statusText.textContent = "Please start the camera first.";
+            return;
+        }
+
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+
+        const context = canvas.getContext("2d");
+        context.translate(canvas.width, 0);
+        context.scale(-1, 1);
+        context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+        const imageData = canvas.toDataURL("image/jpeg", 0.85);
+        photo.src = imageData;
+        photo.style.display = "block";
+        photoInput.value = imageData;
+        previewMessage.style.display = "none";
+
+        statusText.textContent =
+            "Photo captured in the browser. Server-side saving is not yet connected.";
+    });
+
+    document.getElementById("stopCamera").addEventListener("click", () => {
+        if (cameraStream) {
+            cameraStream.getTracks().forEach(track => track.stop());
+            cameraStream = null;
+        }
+
+        video.srcObject = null;
+        statusText.textContent = "Camera stopped.";
+    });
+
+    document.getElementById("registrationForm").addEventListener("submit", event => {
+        if (cameraStream) {
+            cameraStream.getTracks().forEach(track => track.stop());
+            cameraStream = null;
+        }
+    });
+})();
+</script>
 </body>
 </html>
-
