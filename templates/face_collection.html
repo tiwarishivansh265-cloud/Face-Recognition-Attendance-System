@@ -7,7 +7,10 @@
     <title>FRAMS | Face Collection</title>
 
     <style>
-        * { box-sizing: border-box; font-family: Arial, sans-serif; }
+        * {
+            box-sizing: border-box;
+            font-family: Arial, sans-serif;
+        }
 
         body {
             margin: 0;
@@ -16,7 +19,18 @@
             color: #f1f5f9;
         }
 
-        .container { max-width: 1000px; margin: auto; }
+        .container {
+            max-width: 1000px;
+            margin: auto;
+        }
+
+        h1 { font-size: 28px; }
+        h2 { font-size: 20px; }
+
+        .muted {
+            color: #9fb0c9;
+            line-height: 1.6;
+        }
 
         .card {
             background: #12223b;
@@ -26,17 +40,25 @@
             margin: 20px 0;
         }
 
-        .muted { color: #9fb0c9; line-height: 1.6; }
+        label {
+            display: block;
+            margin: 14px 0 8px;
+            color: #dbeafe;
+        }
 
-        label { display: block; margin: 14px 0 8px; }
-
-        input {
+        input, select {
             width: 100%;
             padding: 12px;
             color: white;
             background: #09162a;
             border: 1px solid #344967;
             border-radius: 8px;
+            font-size: 15px;
+        }
+
+        select option {
+            background: #09162a;
+            color: white;
         }
 
         .grid {
@@ -48,6 +70,7 @@
         .camera-frame {
             position: relative;
             overflow: hidden;
+            width: 100%;
             aspect-ratio: 4 / 3;
             background: #020617;
             border: 1px solid #344967;
@@ -73,20 +96,35 @@
             pointer-events: none;
         }
 
-        .status, .preview {
+        .status {
             padding: 12px;
             margin-top: 12px;
-            background: #09162a;
             border-radius: 8px;
+            background: #09162a;
+            color: #86efac;
+            line-height: 1.5;
+            font-size: 14px;
             overflow-wrap: anywhere;
         }
 
-        .status { color: #86efac; line-height: 1.5; }
+        .flash-message {
+            padding: 13px;
+            margin: 10px 0;
+            border-radius: 8px;
+            background: #172d49;
+            border: 1px solid #344967;
+            line-height: 1.5;
+            overflow-wrap: anywhere;
+        }
 
         .preview {
-            min-height: 180px;
+            width: 100%;
+            min-height: 200px;
+            padding: 12px;
             text-align: center;
+            background: #09162a;
             border: 1px dashed #344967;
+            border-radius: 12px;
         }
 
         #photo {
@@ -113,19 +151,28 @@
             font-size: 14px;
             cursor: pointer;
             text-decoration: none;
+            text-align: center;
         }
 
-        button:disabled { opacity: 0.6; cursor: not-allowed; }
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
 
         .blue { background: #2563eb; }
         .green { background: #15803d; }
         .gray { background: #334155; }
 
-        .note { color: #fcd34d; font-size: 13px; line-height: 1.6; }
+        .note {
+            color: #fcd34d;
+            font-size: 13px;
+            line-height: 1.6;
+        }
 
         @media (max-width: 650px) {
             .grid { grid-template-columns: 1fr; }
             .card { padding: 16px; }
+            h1 { font-size: 24px; }
         }
     </style>
 </head>
@@ -133,13 +180,16 @@
 <body>
 <main class="container">
     <h1>Face Data Collection</h1>
+
     <p class="muted">
-        Register a student's face for attendance recognition.
+        Select a registered student and enroll their face for attendance.
     </p>
 
     {% with messages = get_flashed_messages(with_categories=true) %}
         {% for category, message in messages %}
-            <div class="status">{{ message }}</div>
+            <div class="flash-message" role="status">
+                {{ message }}
+            </div>
         {% endfor %}
     {% endwith %}
 
@@ -150,20 +200,29 @@
         <section class="card">
             <h2>Student Details</h2>
 
-            <label for="studentId">Registered Student ID</label>
-            <input id="studentId"
-                   name="student_id"
-                   type="text"
-                   maxlength="30"
-                   placeholder="Enter registered Student ID"
-                   autocomplete="off"
-                   required>
+            <label for="studentId">Select Registered Student</label>
+
+            <select id="studentId" name="student_id" required>
+                <option value="">-- Select Student --</option>
+
+                {% for student in students %}
+                    <option value="{{ student['student_id'] }}">
+                        {{ student['student_id'] }} - {{ student['name'] }}
+                    </option>
+                {% endfor %}
+            </select>
+
+            {% if not students %}
+                <p class="note">
+                    No students found. Register a student first.
+                </p>
+            {% else %}
+                <p class="muted">
+                    Select the student whose face you want to enroll.
+                </p>
+            {% endif %}
 
             <input type="hidden" id="facePhoto" name="face_photo">
-
-            <p class="muted">
-                Enter the exact Student ID already registered in FRAMS.
-            </p>
         </section>
 
         <section class="card">
@@ -172,22 +231,33 @@
             <div class="grid">
                 <div>
                     <div class="camera-frame">
-                        <video id="camera" autoplay playsinline muted></video>
+                        <video id="camera"
+                               autoplay
+                               playsinline
+                               muted></video>
                         <div class="face-guide"></div>
                     </div>
 
                     <div class="status" id="status" role="status">
-                        Start the camera to begin.
+                        Camera is not started.
                     </div>
 
                     <div class="buttons">
-                        <button class="blue" type="button" id="start">
+                        <button class="blue"
+                                type="button"
+                                id="start">
                             Start Camera
                         </button>
-                        <button class="green" type="button" id="capture">
+
+                        <button class="green"
+                                type="button"
+                                id="capture">
                             Capture Face
                         </button>
-                        <button class="gray" type="button" id="stop">
+
+                        <button class="gray"
+                                type="button"
+                                id="stop">
                             Stop Camera
                         </button>
                     </div>
@@ -198,23 +268,29 @@
 
                     <div class="preview">
                         <p class="muted" id="previewText">
-                            Your captured photo will appear here.
+                            Captured photo will appear here.
                         </p>
+
                         <img id="photo" alt="Captured face preview">
                     </div>
 
                     <p class="note">
-                        Keep one face centered inside the green guide and
-                        use good lighting. The guide is not automatic
+                        Keep one face centered inside the green oval.
+                        Use good lighting and look toward the camera.
+                        The oval is a positioning guide, not automatic
                         face detection.
                     </p>
                 </div>
             </div>
 
             <div class="buttons">
-                <button class="green" type="submit" id="save">
+                <button class="green"
+                        type="submit"
+                        id="save"
+                        {% if not students %}disabled{% endif %}>
                     Save Enrollment
                 </button>
+
                 <a class="back gray"
                    href="{{ url_for('admin_dashboard') }}">
                     Back to Dashboard
@@ -240,74 +316,105 @@
 
     let stream = null;
     let capturedImage = null;
+    let submitting = false;
 
-    document.getElementById("start").addEventListener("click", async () => {
-        try {
-            if (!navigator.mediaDevices ||
-                !navigator.mediaDevices.getUserMedia) {
+    function stopCamera() {
+        if (stream) {
+            stream.getTracks().forEach(track => track.stop());
+            stream = null;
+        }
+
+        video.srcObject = null;
+    }
+
+    document.getElementById("start").addEventListener(
+        "click", async () => {
+            try {
+                stopCamera();
+
+                capturedImage = null;
+                facePhoto.value = "";
+                photo.removeAttribute("src");
+                photo.style.display = "none";
+                previewText.style.display = "block";
+
+                if (!navigator.mediaDevices ||
+                    !navigator.mediaDevices.getUserMedia) {
+                    status.textContent =
+                        "Camera needs HTTPS or localhost. Open the app securely.";
+                    return;
+                }
+
+                stream = await navigator.mediaDevices.getUserMedia({
+                    video: {
+                        facingMode: "user",
+                        width: { ideal: 640 },
+                        height: { ideal: 480 }
+                    },
+                    audio: false
+                });
+
+                video.srcObject = stream;
+                await video.play();
+
                 status.textContent =
-                    "Camera needs HTTPS or localhost. Open the app securely.";
+                    "Camera is live. Position your face inside the green oval.";
+
+            } catch (error) {
+                stopCamera();
+
+                status.textContent =
+                    "Camera access failed. Allow browser permission and try again.";
+
+                console.error("Camera error:", error);
+            }
+        }
+    );
+
+    document.getElementById("capture").addEventListener(
+        "click", () => {
+            if (!stream || !video.videoWidth || !video.videoHeight) {
+                status.textContent =
+                    "Please start the camera and wait for the video first.";
                 return;
             }
 
-            if (stream) {
-                stream.getTracks().forEach(track => track.stop());
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+
+            const ctx = canvas.getContext("2d");
+
+            if (!ctx) {
+                status.textContent = "Could not capture the photo.";
+                return;
             }
 
-            stream = await navigator.mediaDevices.getUserMedia({
-                video: {
-                    facingMode: "user",
-                    width: { ideal: 640 },
-                    height: { ideal: 480 }
-                },
-                audio: false
-            });
+            // Mirror the captured image to match the camera preview.
+            ctx.translate(canvas.width, 0);
+            ctx.scale(-1, 1);
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-            video.srcObject = stream;
-            await video.play();
+            capturedImage = canvas.toDataURL("image/jpeg", 0.85);
+            facePhoto.value = capturedImage;
 
-            capturedImage = null;
-            facePhoto.value = "";
-            photo.style.display = "none";
-            previewText.style.display = "block";
+            photo.src = capturedImage;
+            photo.style.display = "block";
+            previewText.style.display = "none";
 
             status.textContent =
-                "Camera started. Position your face inside the green guide.";
-        } catch (error) {
-            status.textContent =
-                "Camera failed. Allow camera permission and try again.";
+                "Photo captured. Select a student and click Save Enrollment.";
         }
-    });
+    );
 
-    document.getElementById("capture").addEventListener("click", () => {
-        if (!stream || !video.videoWidth) {
-            status.textContent = "Please start the camera first.";
+    form.addEventListener("submit", event => {
+        if (submitting) {
+            event.preventDefault();
             return;
         }
 
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
-
-        const ctx = canvas.getContext("2d");
-        ctx.translate(canvas.width, 0);
-        ctx.scale(-1, 1);
-        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-        capturedImage = canvas.toDataURL("image/jpeg", 0.85);
-        facePhoto.value = capturedImage;
-
-        photo.src = capturedImage;
-        photo.style.display = "block";
-        previewText.style.display = "none";
-
-        status.textContent =
-            "Photo captured. Enter the Student ID and save enrollment.";
-    });
-
-    form.addEventListener("submit", event => {
-        if (!studentId.value.trim()) {
+        if (!studentId.value) {
             event.preventDefault();
-            status.textContent = "Please enter the registered Student ID.";
+            status.textContent = "Please select a registered student.";
             studentId.focus();
             return;
         }
@@ -318,32 +425,20 @@
             return;
         }
 
-        studentId.value = studentId.value.trim();
+        submitting = true;
         saveButton.disabled = true;
         saveButton.textContent = "Saving...";
-        status.textContent = "Sending enrollment photo to the server...";
+        status.textContent = "Sending photo to the server for validation...";
 
-        if (stream) {
-            stream.getTracks().forEach(track => track.stop());
-            stream = null;
-        }
+        stopCamera();
     });
 
     document.getElementById("stop").addEventListener("click", () => {
-        if (stream) {
-            stream.getTracks().forEach(track => track.stop());
-        }
-
-        stream = null;
-        video.srcObject = null;
+        stopCamera();
         status.textContent = "Camera stopped.";
     });
 
-    window.addEventListener("pagehide", () => {
-        if (stream) {
-            stream.getTracks().forEach(track => track.stop());
-        }
-    });
+    window.addEventListener("pagehide", stopCamera);
 })();
 </script>
 </body>
