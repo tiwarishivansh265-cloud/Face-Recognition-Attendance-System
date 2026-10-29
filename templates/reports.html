@@ -1,1 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FRAMS | Reports</title>
 
+    <style>
+        * {
+            box-sizing: border-box;
+            font-family: Arial, sans-serif;
+        }
+
+        body {
+            margin: 0;
+            padding: 28px 18px;
+            background: #091426;
+            color: #f1f5f9;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: auto;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 15px;
+            flex-wrap: wrap;
+            margin-bottom: 28px;
+        }
+
+        h1 {
+            font-size: 27px;
+        }
+
+        p {
+            color: #9fb0c9;
+            line-height: 1.6;
+        }
+
+        .card {
+            background: #12223b;
+            border: 1px solid #293d5a;
+            border-radius: 13px;
+            padding: 24px;
+            margin-bottom: 22px;
+        }
+
+        .summary {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 18px;
+        }
+
+        .number {
+            margin-top: 12px;
+            font-size: 32px;
+            color: #60a5fa;
+            font-weight: bold;
+        }
+
+        label {
+            display: block;
+            margin: 17px 0 8px;
+        }
+
+        input {
+            width: 100%;
+            padding: 12px;
+            background: #09162a;
+            color: white;
+            border: 1px solid #344967;
+            border-radius: 8px;
+        }
+
+        button, .btn {
+            display: inline-block;
+            padding: 12px 16px;
+            margin-top: 18px;
+            border: 0;
+            border-radius: 8px;
+            background: #2563eb;
+            color: white;
+            text-decoration: none;
+            cursor: pointer;
+        }
+
+        .back {
+            background: #334155;
+        }
+
+        .note {
+            margin-top: 12px;
+            font-size: 13px;
+        }
+
+        @media (max-width: 600px) {
+            .summary {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <main class="container">
+        <header>
+            <div>
+                <h1>Attendance Reports</h1>
+                <p>Review student attendance statistics.</p>
+            </div>
+
+            <a class="btn back"
+               href="{{ url_for('admin_dashboard') }}">
+                Dashboard
+            </a>
+        </header>
+
+        <section class="summary">
+            <article class="card">
+                <h2>Total Students</h2>
+                <div class="number">{{ student_count }}</div>
+            </article>
+
+            <article class="card">
+                <h2>Total Attendance Entries</h2>
+                <div class="number">{{ attendance_count }}</div>
+            </article>
+        </section>
+
+        <section class="card">
+            <h2>Attendance Report</h2>
+            <p>
+                Select a date range to request an attendance report.
+            </p>
+
+            <form method="GET" action="{{ url_for('reports') }}">
+                <label for="start_date">Start Date</label>
+                <input
+                    type="date"
+                    id="start_date"
+                    name="start_date"
+                    value="{{ start_date }}"
+                    required
+                >
+
+                <label for="end_date">End Date</label>
+                <input
+                    type="date"
+                    id="end_date"
+                    name="end_date"
+                    value="{{ end_date }}"
+                    required
+                >
+
+                <button type="submit">Generate Report</button>
+            </form>
+
+            <p class="note">
+                Report filtering and CSV export will work after
+                the Flask backend is connected.
+            </p>
+        </section>
+
+        <a class="btn back"
+           href="{{ url_for('admin_dashboard') }}">
+            Back to Dashboard
+        </a>
+    </main>
+</body>
+</html>
