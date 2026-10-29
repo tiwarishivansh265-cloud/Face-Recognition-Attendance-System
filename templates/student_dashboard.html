@@ -1,1 +1,217 @@
 
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FRAMS | Student Dashboard</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+        }
+
+        body {
+            background: #091426;
+            color: #f1f5f9;
+        }
+
+        header {
+            background: #101e34;
+            border-bottom: 1px solid #293d5a;
+            padding: 20px 6%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .brand {
+            color: #60a5fa;
+            font-size: 23px;
+            font-weight: bold;
+        }
+
+        .logout {
+            background: #b42335;
+            color: white;
+            padding: 10px 16px;
+            border-radius: 8px;
+            text-decoration: none;
+        }
+
+        main {
+            max-width: 1150px;
+            margin: auto;
+            padding: 35px 20px;
+        }
+
+        h1 {
+            font-size: 28px;
+        }
+
+        .subtitle {
+            color: #9fb0c9;
+            margin-top: 10px;
+            line-height: 1.6;
+        }
+
+        .profile {
+            margin-top: 28px;
+            padding: 25px;
+            background: #12223b;
+            border: 1px solid #293d5a;
+            border-radius: 14px;
+        }
+
+        .profile h2 {
+            margin-bottom: 18px;
+        }
+
+        .profile p {
+            color: #cbd5e1;
+            margin: 12px 0;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 20px;
+            margin-top: 25px;
+        }
+
+        .card {
+            background: #12223b;
+            border: 1px solid #293d5a;
+            border-radius: 14px;
+            padding: 24px;
+        }
+
+        .card h2 {
+            font-size: 19px;
+            margin-bottom: 12px;
+        }
+
+        .card p {
+            color: #9fb0c9;
+            font-size: 14px;
+            line-height: 1.7;
+            margin-bottom: 18px;
+        }
+
+        .btn {
+            display: inline-block;
+            background: #2563eb;
+            color: white;
+            padding: 11px 15px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-size: 14px;
+        }
+
+        .security {
+            background: #18334f;
+            border: 1px solid #345779;
+        }
+
+        footer {
+            padding: 25px;
+            text-align: center;
+            color: #8194af;
+            font-size: 13px;
+        }
+
+        @media (max-width: 650px) {
+            .grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <header>
+        <div class="brand">FRAMS Student Portal</div>
+        <a class="logout" href="{{ url_for('logout') }}">Logout</a>
+    </header>
+
+    <main>
+        <h1>Student Dashboard</h1>
+        <p class="subtitle">
+            Welcome to your attendance management portal.
+        </p>
+
+        <section class="profile">
+            <h2>My Profile</h2>
+
+            <p>
+                <strong>Student ID:</strong>
+                {{ student.student_id }}
+            </p>
+
+            <p>
+                <strong>Name:</strong>
+                {{ student.name }}
+            </p>
+
+            <p>
+                <strong>Account Type:</strong> Student
+            </p>
+        </section>
+
+        <section class="grid">
+            <article class="card">
+                <h2>My Attendance</h2>
+                <p>
+                    Check your attendance history and saved attendance
+                    entries.
+                </p>
+                <a class="btn" href="{{ url_for('my_attendance') }}">
+                    View Attendance
+                </a>
+            </article>
+
+            <article class="card">
+                <h2>GPS Location</h2>
+                <p>
+                    Location can be recorded during attendance after
+                    you grant browser location permission.
+                </p>
+                <a class="btn" href="{{ url_for('mark_attendance') }}">
+                    Open Attendance
+                </a>
+            </article>
+
+            <article class="card security">
+                <h2>Account Security</h2>
+                <p>
+                    Update your password to help keep your account secure.
+                </p>
+                <a class="btn" href="{{ url_for('change_password') }}">
+                    Change Password
+                </a>
+            </article>
+
+            <article class="card">
+                <h2>My Information</h2>
+                <p>
+                    Review your registered student details and
+                    account information.
+                </p>
+                <a class="btn" href="{{ url_for('my_profile') }}">
+                    View Profile
+                </a>
+            </article>
+        </section>
+    </main>
+
+    <footer>
+        Face Recognition Attendance Management System &copy; 2026
+    </footer>
+</body>
+</html>
+
