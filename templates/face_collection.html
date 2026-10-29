@@ -7,10 +7,7 @@
     <title>FRAMS | Face Collection</title>
 
     <style>
-        * {
-            box-sizing: border-box;
-            font-family: Arial, sans-serif;
-        }
+        * { box-sizing: border-box; font-family: Arial, sans-serif; }
 
         body {
             margin: 0;
@@ -19,35 +16,21 @@
             color: #f1f5f9;
         }
 
-        .container {
-            max-width: 1050px;
-            margin: auto;
-        }
-
-        h1 { font-size: 28px; }
-        h2 { font-size: 20px; }
-
-        .muted {
-            color: #9fb0c9;
-            line-height: 1.6;
-        }
+        .container { max-width: 1000px; margin: auto; }
 
         .card {
             background: #12223b;
             border: 1px solid #293d5a;
             border-radius: 15px;
-            padding: 24px;
+            padding: 22px;
             margin: 20px 0;
         }
 
-        label {
-            display: block;
-            margin: 15px 0 8px;
-            color: #dbeafe;
-            font-size: 14px;
-        }
+        .muted { color: #9fb0c9; line-height: 1.6; }
 
-        input, select {
+        label { display: block; margin: 14px 0 8px; }
+
+        input {
             width: 100%;
             padding: 12px;
             color: white;
@@ -65,7 +48,6 @@
         .camera-frame {
             position: relative;
             overflow: hidden;
-            width: 100%;
             aspect-ratio: 4 / 3;
             background: #020617;
             border: 1px solid #344967;
@@ -91,45 +73,20 @@
             pointer-events: none;
         }
 
-        .status {
+        .status, .preview {
             padding: 12px;
             margin-top: 12px;
-            border-radius: 8px;
             background: #09162a;
-            color: #86efac;
-            line-height: 1.5;
-            font-size: 14px;
-        }
-
-        .buttons {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-            margin-top: 16px;
-        }
-
-        button, .back {
-            padding: 12px 16px;
-            border: none;
             border-radius: 8px;
-            color: white;
-            font-size: 14px;
-            cursor: pointer;
-            text-decoration: none;
+            overflow-wrap: anywhere;
         }
 
-        .blue { background: #2563eb; }
-        .green { background: #15803d; }
-        .gray { background: #334155; }
+        .status { color: #86efac; line-height: 1.5; }
 
         .preview {
-            width: 100%;
-            min-height: 200px;
-            padding: 12px;
+            min-height: 180px;
             text-align: center;
-            background: #09162a;
             border: 1px dashed #344967;
-            border-radius: 12px;
         }
 
         #photo {
@@ -140,15 +97,35 @@
             border-radius: 10px;
         }
 
-        .note {
-            color: #fcd34d;
-            font-size: 13px;
-            line-height: 1.6;
+        .buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 16px;
         }
+
+        button, .back {
+            display: inline-block;
+            padding: 12px 16px;
+            border: none;
+            border-radius: 8px;
+            color: white;
+            font-size: 14px;
+            cursor: pointer;
+            text-decoration: none;
+        }
+
+        button:disabled { opacity: 0.6; cursor: not-allowed; }
+
+        .blue { background: #2563eb; }
+        .green { background: #15803d; }
+        .gray { background: #334155; }
+
+        .note { color: #fcd34d; font-size: 13px; line-height: 1.6; }
 
         @media (max-width: 650px) {
             .grid { grid-template-columns: 1fr; }
-            .card { padding: 17px; }
+            .card { padding: 16px; }
         }
     </style>
 </head>
@@ -157,77 +134,94 @@
 <main class="container">
     <h1>Face Data Collection</h1>
     <p class="muted">
-        Select a registered student and capture a face photo for enrollment.
+        Register a student's face for attendance recognition.
     </p>
 
-    <section class="card">
-        <h2>Student Details</h2>
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% for category, message in messages %}
+            <div class="status">{{ message }}</div>
+        {% endfor %}
+    {% endwith %}
 
-        <label for="studentId">Student ID</label>
-        <input id="studentId" type="text"
-               placeholder="Enter registered Student ID"
-               maxlength="30" required>
+    <form id="enrollmentForm"
+          method="POST"
+          action="{{ url_for('face_collection') }}">
 
-        <p class="muted">
-            Enter the same Student ID used during registration.
-        </p>
-    </section>
+        <section class="card">
+            <h2>Student Details</h2>
 
-    <section class="card">
-        <h2>Live Camera & Face Capture</h2>
+            <label for="studentId">Registered Student ID</label>
+            <input id="studentId"
+                   name="student_id"
+                   type="text"
+                   maxlength="30"
+                   placeholder="Enter registered Student ID"
+                   autocomplete="off"
+                   required>
 
-        <div class="grid">
-            <div>
-                <div class="camera-frame">
-                    <video id="camera" autoplay playsinline muted></video>
-                    <div class="face-guide"></div>
+            <input type="hidden" id="facePhoto" name="face_photo">
+
+            <p class="muted">
+                Enter the exact Student ID already registered in FRAMS.
+            </p>
+        </section>
+
+        <section class="card">
+            <h2>Live Camera & Face Capture</h2>
+
+            <div class="grid">
+                <div>
+                    <div class="camera-frame">
+                        <video id="camera" autoplay playsinline muted></video>
+                        <div class="face-guide"></div>
+                    </div>
+
+                    <div class="status" id="status" role="status">
+                        Start the camera to begin.
+                    </div>
+
+                    <div class="buttons">
+                        <button class="blue" type="button" id="start">
+                            Start Camera
+                        </button>
+                        <button class="green" type="button" id="capture">
+                            Capture Face
+                        </button>
+                        <button class="gray" type="button" id="stop">
+                            Stop Camera
+                        </button>
+                    </div>
                 </div>
 
-                <div class="status" id="status" role="status">
-                    Camera is not started.
-                </div>
+                <div>
+                    <h2>Captured Photo</h2>
 
-                <div class="buttons">
-                    <button class="blue" type="button" id="start">
-                        Start Camera
-                    </button>
-                    <button class="green" type="button" id="capture">
-                        Capture Face
-                    </button>
-                    <button class="gray" type="button" id="stop">
-                        Stop Camera
-                    </button>
-                </div>
-            </div>
+                    <div class="preview">
+                        <p class="muted" id="previewText">
+                            Your captured photo will appear here.
+                        </p>
+                        <img id="photo" alt="Captured face preview">
+                    </div>
 
-            <div>
-                <h2>Captured Photo</h2>
-                <div class="preview">
-                    <p class="muted" id="previewText">
-                        Captured photo will appear here.
+                    <p class="note">
+                        Keep one face centered inside the green guide and
+                        use good lighting. The guide is not automatic
+                        face detection.
                     </p>
-                    <img id="photo" alt="Captured face preview">
                 </div>
-
-                <div class="buttons">
-                    <button class="green" type="button" id="save">
-                        Save Enrollment
-                    </button>
-                </div>
-
-                <p class="note">
-                    The green oval is a positioning guide, not automatic
-                    face detection. Saving enrollment requires backend support.
-                </p>
             </div>
-        </div>
-    </section>
 
-    <div class="buttons">
-        <a class="back gray" href="{{ url_for('admin_dashboard') }}">
-            Back to Dashboard
-        </a>
-    </div>
+            <div class="buttons">
+                <button class="green" type="submit" id="save">
+                    Save Enrollment
+                </button>
+                <a class="back gray"
+                   href="{{ url_for('admin_dashboard') }}">
+                    Back to Dashboard
+                </a>
+            </div>
+        </section>
+    </form>
 </main>
 
 <canvas id="canvas" hidden></canvas>
@@ -240,19 +234,25 @@
     const status = document.getElementById("status");
     const previewText = document.getElementById("previewText");
     const studentId = document.getElementById("studentId");
+    const facePhoto = document.getElementById("facePhoto");
+    const form = document.getElementById("enrollmentForm");
+    const saveButton = document.getElementById("save");
 
     let stream = null;
     let capturedImage = null;
 
     document.getElementById("start").addEventListener("click", async () => {
         try {
-            if (!navigator.mediaDevices?.getUserMedia) {
+            if (!navigator.mediaDevices ||
+                !navigator.mediaDevices.getUserMedia) {
                 status.textContent =
-                    "Camera requires HTTPS or localhost.";
+                    "Camera needs HTTPS or localhost. Open the app securely.";
                 return;
             }
 
-            stream?.getTracks().forEach(track => track.stop());
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+            }
 
             stream = await navigator.mediaDevices.getUserMedia({
                 video: {
@@ -265,11 +265,17 @@
 
             video.srcObject = stream;
             await video.play();
+
+            capturedImage = null;
+            facePhoto.value = "";
+            photo.style.display = "none";
+            previewText.style.display = "block";
+
             status.textContent =
-                "Camera is live. Keep your face inside the green guide.";
+                "Camera started. Position your face inside the green guide.";
         } catch (error) {
             status.textContent =
-                "Camera access failed. Check browser permission and try again.";
+                "Camera failed. Allow camera permission and try again.";
         }
     });
 
@@ -288,38 +294,55 @@
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
         capturedImage = canvas.toDataURL("image/jpeg", 0.85);
+        facePhoto.value = capturedImage;
+
         photo.src = capturedImage;
         photo.style.display = "block";
         previewText.style.display = "none";
 
-        status.textContent = "Photo captured in browser preview.";
+        status.textContent =
+            "Photo captured. Enter the Student ID and save enrollment.";
     });
 
-    document.getElementById("save").addEventListener("click", () => {
+    form.addEventListener("submit", event => {
         if (!studentId.value.trim()) {
-            status.textContent = "Enter the Student ID first.";
+            event.preventDefault();
+            status.textContent = "Please enter the registered Student ID.";
             studentId.focus();
             return;
         }
 
-        if (!capturedImage) {
-            status.textContent = "Capture a photo before saving.";
+        if (!capturedImage || !facePhoto.value) {
+            event.preventDefault();
+            status.textContent = "Capture a face photo before saving.";
             return;
         }
 
-        status.textContent =
-            "Photo captured, but server enrollment is not connected yet.";
+        studentId.value = studentId.value.trim();
+        saveButton.disabled = true;
+        saveButton.textContent = "Saving...";
+        status.textContent = "Sending enrollment photo to the server...";
+
+        if (stream) {
+            stream.getTracks().forEach(track => track.stop());
+            stream = null;
+        }
     });
 
     document.getElementById("stop").addEventListener("click", () => {
-        stream?.getTracks().forEach(track => track.stop());
+        if (stream) {
+            stream.getTracks().forEach(track => track.stop());
+        }
+
         stream = null;
         video.srcObject = null;
         status.textContent = "Camera stopped.";
     });
 
     window.addEventListener("pagehide", () => {
-        stream?.getTracks().forEach(track => track.stop());
+        if (stream) {
+            stream.getTracks().forEach(track => track.stop());
+        }
     });
 })();
 </script>
