@@ -1,181 +1,174 @@
 
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FRAMS | Attendance Records</title>
-
+    <title>Live Attendance | FRAMS</title>
     <style>
-        * {
-            box-sizing: border-box;
-            font-family: Arial, sans-serif;
-        }
-
+        * { box-sizing: border-box; }
         body {
             margin: 0;
-            padding: 25px;
-            background: #091426;
-            color: #f1f5f9;
+            padding: 24px;
+            background: #081225;
+            color: #eaf2ff;
+            font-family: Arial, sans-serif;
         }
-
         .container {
-            max-width: 1100px;
-            margin: auto;
+            max-width: 760px;
+            margin: 25px auto;
+            padding: 24px;
+            background: #111f38;
+            border: 1px solid #263c5e;
+            border-radius: 18px;
         }
-
-        .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 15px;
-            margin-bottom: 25px;
-        }
-
-        h1 {
-            font-size: 27px;
-        }
-
-        p {
-            color: #9fb0c9;
-            margin-top: 9px;
-        }
-
-        .card {
-            background: #12223b;
-            border: 1px solid #293d5a;
-            border-radius: 13px;
-            padding: 22px;
-        }
-
-        .table-wrap {
+        h1 { color: #65aaff; }
+        p { color: #b8c8df; line-height: 1.5; }
+        .camera {
+            position: relative;
             width: 100%;
-            overflow-x: auto;
-            margin-top: 20px;
+            overflow: hidden;
+            background: #020817;
+            border-radius: 14px;
         }
-
-        table {
+        video, canvas {
+            display: block;
             width: 100%;
-            border-collapse: collapse;
-            min-width: 650px;
         }
-
-        th, td {
-            padding: 14px;
-            border-bottom: 1px solid #293d5a;
-            text-align: left;
-            font-size: 14px;
+        canvas { display: none; }
+        .guide {
+            position: absolute;
+            width: 48%;
+            height: 68%;
+            left: 26%;
+            top: 16%;
+            border: 3px solid #24ef91;
+            border-radius: 50%;
+            box-shadow: 0 0 14px #24ef9180;
+            pointer-events: none;
         }
-
-        th {
-            background: #1a304e;
-            color: #bfdbfe;
-        }
-
-        td {
-            color: #e2e8f0;
-        }
-
-        .empty {
-            text-align: center;
-            padding: 30px;
-            color: #9fb0c9;
-        }
-
-        .btn {
+        button, a {
             display: inline-block;
-            padding: 11px 15px;
-            background: #2563eb;
+            margin: 8px 5px 0 0;
+            padding: 12px 16px;
+            border: 0;
+            border-radius: 9px;
+            background: #2479ed;
             color: white;
+            font-weight: bold;
             text-decoration: none;
-            border-radius: 8px;
+            cursor: pointer;
         }
-
-        .back {
-            background: #334155;
-        }
-
-        .actions {
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
-            margin-top: 20px;
-        }
-
-        @media (max-width: 500px) {
-            body {
-                padding: 15px;
-            }
-
-            .card {
-                padding: 14px;
-            }
-        }
+        button:disabled { opacity: .5; cursor: not-allowed; }
+        .secondary { background: #31445f; }
+        #status { margin-top: 16px; font-weight: bold; }
+        .note { font-size: 13px; }
     </style>
 </head>
-
 <body>
-    <main class="container">
-        <header class="header">
-            <div>
-                <h1>Attendance Records</h1>
-                <p>Review recorded student attendance.</p>
-            </div>
+<div class="container">
+    <h1>Live Face Attendance</h1>
+    <p>Camera start karo, apna face green oval ke andar rakho, phir attendance submit karo.</p>
 
-            <a class="btn back"
-               href="{{ url_for('admin_dashboard') }}">
-                Dashboard
-            </a>
-        </header>
+    <div class="camera">
+        <video id="camera" autoplay playsinline></video>
+        <div class="guide"></div>
+        <canvas id="snapshot"></canvas>
+    </div>
 
-        <section class="card">
-            <h2>Attendance History</h2>
+    <button id="startBtn" type="button">Start Camera</button>
+    <button id="captureBtn" type="button" disabled>Capture Face</button>
+    <button id="stopBtn" class="secondary" type="button">Stop Camera</button>
 
-            <div class="table-wrap">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Student ID</th>
-                            <th>Date</th>
-                            <th>Time</th>
-                            <th>Latitude</th>
-                            <th>Longitude</th>
-                        </tr>
-                    </thead>
+    <form id="attendanceForm" method="POST"
+          action="{{ url_for('mark_attendance') }}">
+        <input type="hidden" name="face_photo" id="facePhoto">
+        <input type="hidden" name="latitude" id="latitude">
+        <input type="hidden" name="longitude" id="longitude">
+        <button id="submitBtn" type="submit" disabled>
+            Verify Face & Mark Attendance
+        </button>
+    </form>
 
-                    <tbody>
-                        {% for record in records %}
-                        <tr>
-                            <td>{{ record["student_id"] }}</td>
-                            <td>{{ record["attendance_date"] }}</td>
-                            <td>{{ record["attendance_time"] }}</td>
-                            <td>
-                                {{ record["latitude"] if record["latitude"] is not none else "N/A" }}
-                            </td>
-                            <td>
-                                {{ record["longitude"] if record["longitude"] is not none else "N/A" }}
-                            </td>
-                        </tr>
-                        {% else %}
-                        <tr>
-                            <td colspan="5" class="empty">
-                                No attendance records available yet.
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
+    <p id="status">Camera abhi start nahi hua.</p>
+    <p class="note">
+        Camera permission zaroori hai. GPS permission optional hai.
+        Face verification ke baad hi attendance accept honi chahiye.
+    </p>
 
-            <div class="actions">
-                <a class="btn back"
-                   href="{{ url_for('admin_dashboard') }}">
-                    Back to Dashboard
-                </a>
-            </div>
-        </section>
-    </main>
+    <a href="{{ url_for('my_attendance') }}">My Attendance</a>
+    <a href="{{ url_for('student_dashboard') }}">Dashboard</a>
+</div>
+
+<script>
+const video = document.getElementById("camera");
+const canvas = document.getElementById("snapshot");
+const startBtn = document.getElementById("startBtn");
+const captureBtn = document.getElementById("captureBtn");
+const stopBtn = document.getElementById("stopBtn");
+const submitBtn = document.getElementById("submitBtn");
+const facePhoto = document.getElementById("facePhoto");
+const statusText = document.getElementById("status");
+let stream = null;
+
+startBtn.addEventListener("click", async () => {
+    try {
+        stream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: "user" },
+            audio: false
+        });
+        video.srcObject = stream;
+        captureBtn.disabled = false;
+        statusText.textContent = "Camera chalu hai. Green oval ke andar face rakho.";
+    } catch (error) {
+        statusText.textContent =
+            "Camera nahi khul paya. Browser permission aur HTTPS check karo.";
+    }
+});
+
+captureBtn.addEventListener("click", () => {
+    if (!stream || !video.videoWidth) {
+        statusText.textContent = "Pehle camera start karo.";
+        return;
+    }
+
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    canvas.getContext("2d").drawImage(
+        video, 0, 0, canvas.width, canvas.height
+    );
+
+    facePhoto.value = canvas.toDataURL("image/jpeg", 0.9);
+    submitBtn.disabled = false;
+    statusText.textContent =
+        "Photo capture ho gayi. Ab Verify Face & Mark Attendance dabao.";
+});
+
+stopBtn.addEventListener("click", () => {
+    if (stream) {
+        stream.getTracks().forEach(track => track.stop());
+        stream = null;
+    }
+    video.srcObject = null;
+    captureBtn.disabled = true;
+    statusText.textContent = "Camera band hai.";
+});
+
+if (navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(
+        position => {
+            document.getElementById("latitude").value =
+                position.coords.latitude;
+            document.getElementById("longitude").value =
+                position.coords.longitude;
+        },
+        () => {
+            statusText.textContent =
+                "GPS location nahi mili. Attendance verification phir bhi try kar sakte ho.";
+        },
+        { enableHighAccuracy: true, timeout: 10000 }
+    );
+}
+</script>
 </body>
 </html>
