@@ -1,5 +1,5 @@
-
 Flask
 opencv-python
 numpy
 face-recognition
+requests
