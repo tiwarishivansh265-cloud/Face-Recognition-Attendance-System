@@ -1,1 +1,317 @@
 
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FRAMS | Face Data Collection</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+            font-family: Arial, sans-serif;
+        }
+
+        body {
+            margin: 0;
+            padding: 25px 16px;
+            background: #091426;
+            color: #f1f5f9;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: auto;
+        }
+
+        h1 {
+            font-size: 27px;
+        }
+
+        .subtitle {
+            color: #9fb0c9;
+            margin: 10px 0 25px;
+            line-height: 1.6;
+        }
+
+        .layout {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 22px;
+        }
+
+        .card {
+            padding: 23px;
+            border-radius: 14px;
+            background: #12223b;
+            border: 1px solid #293d5a;
+        }
+
+        label {
+            display: block;
+            margin: 15px 0 8px;
+            font-size: 14px;
+        }
+
+        input {
+            width: 100%;
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid #344967;
+            background: #09162a;
+            color: white;
+        }
+
+        .camera {
+            position: relative;
+            margin-top: 16px;
+            min-height: 250px;
+            aspect-ratio: 4 / 3;
+            background: #020817;
+            border: 1px solid #34506f;
+            border-radius: 12px;
+            overflow: hidden;
+            display: grid;
+            place-items: center;
+        }
+
+        video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            position: absolute;
+            inset: 0;
+        }
+
+        .face-frame {
+            width: 48%;
+            height: 66%;
+            position: absolute;
+            z-index: 2;
+            border: 3px solid #22c55e;
+            border-radius: 45% 45% 40% 40%;
+            box-shadow: 0 0 12px #22c55e66;
+            pointer-events: none;
+        }
+
+        .camera-message {
+            z-index: 3;
+            padding: 7px 10px;
+            border-radius: 6px;
+            background: #020817bb;
+            color: #bbf7d0;
+            font-size: 12px;
+            text-align: center;
+        }
+
+        .camera video:not([src]) {
+            display: none;
+        }
+
+        button, .back {
+            display: inline-block;
+            padding: 12px 15px;
+            margin-top: 15px;
+            border: none;
+            border-radius: 8px;
+            background: #2563eb;
+            color: white;
+            cursor: pointer;
+            text-decoration: none;
+            font-size: 14px;
+        }
+
+        button:disabled {
+            opacity: .5;
+            cursor: not-allowed;
+        }
+
+        .secondary {
+            background: #334155;
+            margin-left: 6px;
+        }
+
+        .status {
+            margin-top: 15px;
+            color: #a7f3d0;
+            font-size: 14px;
+            line-height: 1.6;
+            overflow-wrap: anywhere;
+        }
+
+        .note {
+            color: #9fb0c9;
+            font-size: 13px;
+            line-height: 1.6;
+            margin-top: 13px;
+        }
+
+        @media (max-width: 700px) {
+            .layout {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <main class="container">
+        <h1>Face Data Collection</h1>
+        <p class="subtitle">
+            Enroll a registered student using the camera.
+            Allow camera and location permissions when prompted.
+        </p>
+
+        <div class="layout">
+            <section class="card">
+                <h2>Student Details</h2>
+
+                <label for="student_id">Student ID</label>
+                <input
+                    type="text"
+                    id="student_id"
+                    placeholder="Enter registered student ID"
+                    maxlength="30"
+                    required
+                >
+
+                <div class="camera">
+                    <video id="video" autoplay playsinline muted></video>
+                    <div class="face-frame"></div>
+                    <div class="camera-message" id="camera-message">
+                        Camera is not started
+                    </div>
+                </div>
+
+                <button type="button" id="start-camera">
+                    Start Camera
+                </button>
+
+                <button type="button" id="capture" disabled>
+                    Capture Preview
+                </button>
+
+                <canvas id="snapshot" hidden></canvas>
+
+                <p class="note">
+                    The green frame is a visual guide only; it does not
+                    detect a face. Captured previews are not uploaded.
+                </p>
+            </section>
+
+            <section class="card">
+                <h2>GPS Location</h2>
+                <p class="note">
+                    Location access is optional until you configure
+                    your attendance verification policy.
+                </p>
+
+                <button type="button" id="get-location">
+                    Get Current Location
+                </button>
+
+                <p class="status" id="location-status" aria-live="polite">
+                    Location has not been requested.
+                </p>
+
+                <p class="status" id="capture-status" aria-live="polite">
+                    No preview captured.
+                </p>
+
+                <button type="button" class="secondary" id="stop-camera">
+                    Stop Camera
+                </button>
+
+                <a class="back" href="{{ url_for('admin_dashboard') }}">
+                    Back to Dashboard
+                </a>
+            </section>
+        </div>
+    </main>
+
+    <script>
+        const video = document.getElementById("video");
+        const canvas = document.getElementById("snapshot");
+        const startButton = document.getElementById("start-camera");
+        const captureButton = document.getElementById("capture");
+        const stopButton = document.getElementById("stop-camera");
+        const cameraMessage = document.getElementById("camera-message");
+        const captureStatus = document.getElementById("capture-status");
+        const locationStatus = document.getElementById("location-status");
+
+        let stream = null;
+
+        startButton.addEventListener("click", async () => {
+            if (!navigator.mediaDevices?.getUserMedia) {
+                cameraMessage.textContent =
+                    "Camera requires HTTPS or localhost.";
+                return;
+            }
+
+            try {
+                stream = await navigator.mediaDevices.getUserMedia({
+                    video: { facingMode: "user" },
+                    audio: false
+                });
+
+                video.srcObject = stream;
+                await video.play();
+
+                cameraMessage.textContent = "Camera is active";
+                captureButton.disabled = false;
+            } catch (error) {
+                cameraMessage.textContent =
+                    "Camera unavailable. Check browser permission.";
+            }
+        });
+
+        captureButton.addEventListener("click", () => {
+            if (!stream || video.videoWidth === 0) return;
+
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+
+            const context = canvas.getContext("2d");
+            context.drawImage(video, 0, 0);
+
+            captureStatus.textContent =
+                "Preview captured locally. Face enrollment is not yet connected.";
+        });
+
+        stopButton.addEventListener("click", () => {
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+            }
+
+            stream = null;
+            video.srcObject = null;
+            captureButton.disabled = true;
+            cameraMessage.textContent = "Camera stopped";
+        });
+
+        document.getElementById("get-location").addEventListener("click", () => {
+            if (!navigator.geolocation) {
+                locationStatus.textContent =
+                    "Geolocation is not supported by this browser.";
+                return;
+            }
+
+            locationStatus.textContent = "Requesting location permission...";
+
+            navigator.geolocation.getCurrentPosition(
+                position => {
+                    locationStatus.textContent =
+                        "Latitude: " + position.coords.latitude +
+                        " | Longitude: " + position.coords.longitude;
+                },
+                () => {
+                    locationStatus.textContent =
+                        "Location unavailable or permission denied.";
+                },
+                { enableHighAccuracy: true, timeout: 10000 }
+            );
+        });
+    </script>
+</body>
+</html>
