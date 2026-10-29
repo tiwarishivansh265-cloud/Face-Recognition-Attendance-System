@@ -1,1 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FRAMS | Admin Dashboard</title>
 
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+        }
+
+        body {
+            background: #091426;
+            color: #f1f5f9;
+        }
+
+        .sidebar {
+            width: 245px;
+            min-height: 100vh;
+            position: fixed;
+            top: 0;
+            left: 0;
+            padding: 28px 18px;
+            background: #101e34;
+            border-right: 1px solid #263750;
+        }
+
+        .brand {
+            font-size: 21px;
+            font-weight: bold;
+            color: #60a5fa;
+            margin-bottom: 8px;
+        }
+
+        .brand-subtitle {
+            color: #93a4bd;
+            font-size: 12px;
+            margin-bottom: 35px;
+        }
+
+        .nav-link {
+            display: block;
+            text-decoration: none;
+            color: #cbd5e1;
+            padding: 13px 12px;
+            margin-bottom: 7px;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+
+        .nav-link:hover, .active {
+            background: #1d3c68;
+            color: #ffffff;
+        }
+
+        .main {
+            margin-left: 245px;
+            padding: 30px;
+        }
+
+        .topbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 15px;
+            flex-wrap: wrap;
+            margin-bottom: 30px;
+        }
+
+        h1 {
+            font-size: 27px;
+        }
+
+        .muted {
+            color: #91a4bf;
+            margin-top: 8px;
+            font-size: 14px;
+        }
+
+        .logout {
+            padding: 10px 16px;
+            color: white;
+            background: #b42335;
+            border-radius: 8px;
+            text-decoration: none;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 20px;
+            margin-bottom: 32px;
+        }
+
+        .stat-card, .feature-card {
+            padding: 24px;
+            background: #12223b;
+            border: 1px solid #293d5a;
+            border-radius: 13px;
+        }
+
+        .stat-card p {
+            color: #a7b8d0;
+            font-size: 14px;
+        }
+
+        .stat-card h2 {
+            color: #60a5fa;
+            margin-top: 13px;
+            font-size: 32px;
+        }
+
+        h3 {
+            margin-bottom: 10px;
+            font-size: 17px;
+        }
+
+        .features {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 18px;
+        }
+
+        .feature-card p {
+            color: #9fb0c9;
+            line-height: 1.6;
+            font-size: 14px;
+            margin-bottom: 20px;
+        }
+
+        .open-link {
+            display: inline-block;
+            padding: 10px 14px;
+            color: white;
+            background: #2563eb;
+            border-radius: 7px;
+            text-decoration: none;
+            font-size: 13px;
+        }
+
+        @media (max-width: 760px) {
+            .sidebar {
+                position: relative;
+                width: 100%;
+                min-height: auto;
+            }
+
+            .main {
+                margin-left: 0;
+                padding: 20px;
+            }
+
+            .stats, .features {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <aside class="sidebar">
+        <div class="brand">FRAMS</div>
+        <div class="brand-subtitle">Attendance Management</div>
+
+        <a class="nav-link active" href="{{ url_for('admin_dashboard') }}">
+            Dashboard
+        </a>
+
+        <a class="nav-link" href="{{ url_for('student_registration') }}">
+            Student Registration
+        </a>
+
+        <a class="nav-link" href="{{ url_for('face_collection') }}">
+            Face Data Collection
+        </a>
+
+        <a class="nav-link" href="{{ url_for('student_records') }}">
+            Student Records
+        </a>
+
+        <a class="nav-link" href="{{ url_for('attendance_records') }}">
+            Attendance Records
+        </a>
+
+        <a class="nav-link" href="{{ url_for('reports') }}">
+            Reports
+        </a>
+
+        <a class="nav-link" href="{{ url_for('change_password') }}">
+            Change Password
+        </a>
+
+        <a class="nav-link" href="{{ url_for('logout') }}">
+            Logout
+        </a>
+    </aside>
+
+    <main class="main">
+        <header class="topbar">
+            <div>
+                <h1>Admin Dashboard</h1>
+                <p class="muted">
+                    Welcome to Face Recognition Attendance System
+                </p>
+            </div>
+
+            <a class="logout" href="{{ url_for('logout') }}">
+                Logout
+            </a>
+        </header>
+
+        <section class="stats">
+            <div class="stat-card">
+                <p>Total Registered Students</p>
+                <h2>{{ student_count }}</h2>
+            </div>
+
+            <div class="stat-card">
+                <p>Total Attendance Entries</p>
+                <h2>{{ attendance_count }}</h2>
+            </div>
+        </section>
+
+        <h2 style="margin-bottom: 18px;">Management</h2>
+
+        <section class="features">
+            <div class="feature-card">
+                <h3>Student Registration</h3>
+                <p>Register students and maintain their basic details.</p>
+                <a class="open-link"
+                   href="{{ url_for('student_registration') }}">
+                    Register Student
+                </a>
+            </div>
+
+            <div class="feature-card">
+                <h3>Face Data Collection</h3>
+                <p>Open the face enrollment interface for registered students.</p>
+                <a class="open-link"
+                   href="{{ url_for('face_collection') }}">
+                    Collect Face Data
+                </a>
+            </div>
+
+            <div class="feature-card">
+                <h3>Student Records</h3>
+                <p>View the registered student list.</p>
+                <a class="open-link"
+                   href="{{ url_for('student_records') }}">
+                    View Students
+                </a>
+            </div>
+
+            <div class="feature-card">
+                <h3>Attendance Records</h3>
+                <p>Review saved attendance entries.</p>
+                <a class="open-link"
+                   href="{{ url_for('attendance_records') }}">
+                    View Attendance
+                </a>
+            </div>
+
+            <div class="feature-card">
+                <h3>Reports</h3>
+                <p>Open the attendance reporting section.</p>
+                <a class="open-link" href="{{ url_for('reports') }}">
+                    View Reports
+                </a>
+            </div>
+
+            <div class="feature-card">
+                <h3>Account Security</h3>
+                <p>Manage your account password securely.</p>
+                <a class="open-link"
+                   href="{{ url_for('change_password') }}">
+                    Change Password
+                </a>
+            </div>
+        </section>
+    </main>
+</body>
+</html>
