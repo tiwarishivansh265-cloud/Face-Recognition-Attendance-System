@@ -1,3 +1,5 @@
+import cv2
+import numpy as np
 import face_recognition
 import os
 import re
@@ -508,14 +510,130 @@ def my_profile():
     return render_template("student_dashboard.html", student=student)
 
 
+
 @app.route("/mark-attendance", methods=["GET", "POST"])
 @login_required("student")
 def mark_attendance():
-    flash(
-        "Attendance is not enabled yet. "
-        "Actual face verification must be implemented first."
-    )
+    if request.method == "GET":
+        return render_template("attendance.html", records=[])
+
+    student = current_student()
+
+    if student is None:
+        session.clear()
+        return redirect(url_for("login"))
+
+    data_url = request.form.get("face_photo", "")
+    latitude_text = request.form.get("latitude", "").strip()
+    longitude_text = request.form.get("longitude", "").strip()
+
+    if not data_url.startswith("data:image/"):
+        flash("Please capture your face photo first.")
+        return redirect(url_for("my_attendance"))
+
+    try:
+        # Decode the captured image in memory.
+        header, encoded = data_url.split(",", 1)
+
+        if len(encoded) > 4_000_000:
+            raise ValueError("Captured photo is too large.")
+
+        image_bytes = base64.b64decode(encoded, validate=True)
+        if len(image_bytes) > 2_500_000:
+            raise ValueError("Captured photo is too large.")
+
+        image_array = np.frombuffer(image_bytes, dtype=np.uint8)
+        captured_bgr = cv2.imdecode(image_array, cv2.IMREAD_COLOR)
+
+        if captured_bgr is None:
+            raise ValueError("Invalid captured image.")
+
+        captured_rgb = cv2.cvtColor(captured_bgr, cv2.COLOR_BGR2RGB)
+        captured_faces = face_recognition.face_encodings(captured_rgb)
+
+        if len(captured_faces) != 1:
+            flash("Please capture a clear photo showing exactly one face.")
+            return redirect(url_for("my_attendance"))
+
+        with get_db() as conn:
+            account = conn.execute("""
+                SELECT face_photo_path
+                FROM students
+                WHERE student_id = ?
+            """, (student["student_id"],)).fetchone()
+
+            if not account or not account["face_photo_path"]:
+                flash("No enrolled face photo found. Contact the administrator.")
+                return redirect(url_for("my_attendance"))
+
+            reference_path = BASE_DIR / account["face_photo_path"]
+
+            if not reference_path.is_file():
+                flash("Enrolled face photo is unavailable. Contact the administrator.")
+                return redirect(url_for("my_attendance"))
+
+            reference_image = face_recognition.load_image_file(
+                str(reference_path)
+            )
+            reference_faces = face_recognition.face_encodings(reference_image)
+
+            if len(reference_faces) != 1:
+                flash("The enrolled face photo is invalid. Contact the administrator.")
+                return redirect(url_for("my_attendance"))
+
+            distances = face_recognition.face_distance(
+                [reference_faces[0]], captured_faces[0]
+            )
+
+            # Conservative starting threshold; test and tune before real use.
+            if len(distances) != 1 or float(distances[0]) > 0.45:
+                flash("Face did not match. Attendance was not marked.")
+                return redirect(url_for("my_attendance"))
+
+            latitude = None
+            longitude = None
+
+            if latitude_text or longitude_text:
+                try:
+                    latitude = float(latitude_text)
+                    longitude = float(longitude_text)
+
+                    if not (-90 <= latitude <= 90 and
+                            -180 <= longitude <= 180):
+                        raise ValueError
+                except ValueError:
+                    flash("Invalid GPS coordinates.")
+                    return redirect(url_for("my_attendance"))
+
+            now = datetime.now()
+            try:
+                conn.execute("""
+                    INSERT INTO attendance (
+                        student_id, attendance_date, attendance_time,
+                        latitude, longitude
+                    )
+                    VALUES (?, ?, ?, ?, ?)
+                """, (
+                    student["student_id"],
+                    now.strftime("%Y-%m-%d"),
+                    now.strftime("%H:%M:%S"),
+                    latitude,
+                    longitude
+                ))
+            except sqlite3.IntegrityError:
+                flash("Attendance has already been marked today.")
+                return redirect(url_for("my_attendance"))
+
+        flash("Face matched. Attendance marked successfully.")
+
+    except (ValueError, binascii.Error):
+        flash("Could not read the captured photo. Please try again.")
+    except Exception:
+        app.logger.exception("Face verification failed")
+        flash("Face verification could not be completed. Try again.")
+
     return redirect(url_for("my_attendance"))
+    
 
 
 @app.route("/logout")
