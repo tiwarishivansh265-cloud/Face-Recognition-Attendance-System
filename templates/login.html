@@ -1,171 +1,196 @@
-
-<!DOCTYPE html>
-<html lang="en">
+<!DOCTYPE html><html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FRAMS | Login</title>
-    <style>
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-            font-family: Arial, sans-serif;
-        }
+    <title>FRAMS | Login</title><style>
+    * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+        font-family: Arial, sans-serif;
+    }
 
-        body {
-            min-height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            padding: 20px;
-            color: #f1f5f9;
-            background: linear-gradient(135deg, #071225, #10264a);
-        }
+    body {
+        min-height: 100vh;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding: 20px;
+        color: #f1f5f9;
+        background: linear-gradient(135deg, #071225, #10264a);
+    }
 
+    .login-card {
+        width: 100%;
+        max-width: 410px;
+        padding: 35px;
+        border: 1px solid #263e62;
+        border-radius: 18px;
+        background: #101d34;
+        box-shadow: 0 20px 55px #0005;
+    }
+
+    .logo {
+        width: 65px;
+        height: 65px;
+        margin: 0 auto 18px;
+        display: grid;
+        place-items: center;
+        border-radius: 16px;
+        background: #2563eb;
+        font-size: 27px;
+        font-weight: bold;
+    }
+
+    h1 {
+        text-align: center;
+        font-size: 25px;
+        margin-bottom: 9px;
+    }
+
+    .subtitle {
+        text-align: center;
+        color: #9caec8;
+        font-size: 14px;
+        line-height: 1.6;
+        margin-bottom: 28px;
+    }
+
+    label {
+        display: block;
+        margin: 17px 0 8px;
+        font-size: 14px;
+        color: #dbeafe;
+    }
+
+    input, select {
+        width: 100%;
+        padding: 13px;
+        border: 1px solid #344967;
+        border-radius: 9px;
+        background: #09162a;
+        color: white;
+        outline: none;
+    }
+
+    input:focus, select:focus {
+        border-color: #60a5fa;
+    }
+
+    button {
+        width: 100%;
+        margin-top: 25px;
+        padding: 14px;
+        border: none;
+        border-radius: 9px;
+        background: #2563eb;
+        color: white;
+        font-size: 16px;
+        font-weight: bold;
+        cursor: pointer;
+    }
+
+    button:hover {
+        background: #1d4ed8;
+    }
+
+    .forgot-row {
+        margin-top: 14px;
+        text-align: right;
+    }
+
+    .forgot-link {
+        color: #93c5fd;
+        font-size: 13px;
+        text-decoration: none;
+    }
+
+    .forgot-link:hover {
+        color: white;
+        text-decoration: underline;
+    }
+
+    .message {
+        margin-top: 15px;
+        padding: 10px;
+        border-radius: 7px;
+        background: #47212a;
+        color: #fecaca;
+        font-size: 14px;
+        line-height: 1.5;
+    }
+
+    .footer {
+        text-align: center;
+        margin-top: 25px;
+        color: #91a4c0;
+        font-size: 12px;
+    }
+
+    @media (max-width: 450px) {
         .login-card {
-            width: 100%;
-            max-width: 410px;
-            padding: 35px;
-            border: 1px solid #263e62;
-            border-radius: 18px;
-            background: #101d34;
-            box-shadow: 0 20px 55px #0005;
+            padding: 25px 20px;
         }
+    }
+</style>
 
-        .logo {
-            width: 65px;
-            height: 65px;
-            margin: 0 auto 18px;
-            display: grid;
-            place-items: center;
-            border-radius: 16px;
-            background: #2563eb;
-            font-size: 27px;
-            font-weight: bold;
-        }
-
-        h1 {
-            text-align: center;
-            font-size: 25px;
-            margin-bottom: 9px;
-        }
-
-        .subtitle {
-            text-align: center;
-            color: #9caec8;
-            font-size: 14px;
-            line-height: 1.6;
-            margin-bottom: 28px;
-        }
-
-        label {
-            display: block;
-            margin: 17px 0 8px;
-            font-size: 14px;
-            color: #dbeafe;
-        }
-
-        input, select {
-            width: 100%;
-            padding: 13px;
-            border: 1px solid #344967;
-            border-radius: 9px;
-            background: #09162a;
-            color: white;
-            outline: none;
-        }
-
-        input:focus, select:focus {
-            border-color: #60a5fa;
-        }
-
-        button {
-            width: 100%;
-            margin-top: 25px;
-            padding: 14px;
-            border: none;
-            border-radius: 9px;
-            background: #2563eb;
-            color: white;
-            font-size: 16px;
-            font-weight: bold;
-            cursor: pointer;
-        }
-
-        button:hover {
-            background: #1d4ed8;
-        }
-
-        .message {
-            margin-top: 15px;
-            padding: 10px;
-            border-radius: 7px;
-            background: #47212a;
-            color: #fecaca;
-            font-size: 14px;
-        }
-
-        .footer {
-            text-align: center;
-            margin-top: 25px;
-            color: #91a4c0;
-            font-size: 12px;
-        }
-    </style>
-</head>
-<body>
+</head><body>
     <main class="login-card">
-        <div class="logo">FR</div>
+        <div class="logo">FR</div>    <h1>Welcome Back</h1>
+    <p class="subtitle">
+        Face Recognition Attendance<br>
+        Management System
+    </p>
 
-        <h1>Welcome Back</h1>
-        <p class="subtitle">
-            Face Recognition Attendance<br>
-            Management System
-        </p>
+    <form method="POST" action="{{ url_for('login') }}">
+        <label for="role">Login As</label>
+        <select id="role" name="role" required>
+            <option value="admin">Administrator</option>
+            <option value="student">Student</option>
+        </select>
 
-        <form method="POST" action="{{ url_for('login') }}">
-            <label for="role">Login As</label>
-            <select id="role" name="role" required>
-                <option value="admin">Administrator</option>
-                <option value="student">Student</option>
-            </select>
+        <label for="username">User ID</label>
+        <input
+            id="username"
+            name="username"
+            type="text"
+            placeholder="Enter your user ID"
+            required
+            autocomplete="username"
+        >
 
-            <label for="username">User ID</label>
-            <input
-                id="username"
-                name="username"
-                type="text"
-                placeholder="Enter your user ID"
-                required
-                autocomplete="username"
-            >
+        <label for="password">Password</label>
+        <input
+            id="password"
+            name="password"
+            type="password"
+            placeholder="Enter your password"
+            required
+            autocomplete="current-password"
+        >
 
-            <label for="password">Password</label>
-            <input
-                id="password"
-                name="password"
-                type="password"
-                placeholder="Enter your password"
-                required
-                autocomplete="current-password"
-            >
+        <div class="forgot-row">
+            <a class="forgot-link"
+               href="{{ url_for('forgot_password') }}">
+                Forgot Password?
+            </a>
+        </div>
 
-            <button type="submit">Sign In</button>
-        </form>
+        <button type="submit">Sign In</button>
+    </form>
 
-        {% with messages = get_flashed_messages() %}
-            {% for message in messages %}
-                <div class="message" role="alert">
-                    {{ message }}
-                </div>
-            {% endfor %}
-        {% endwith %}
+    {% with messages = get_flashed_messages() %}
+        {% for message in messages %}
+            <div class="message" role="alert">
+                {{ message }}
+            </div>
+        {% endfor %}
+    {% endwith %}
 
-        <p class="footer">
-            Secure Attendance System &copy; 2026
-        </p>
-    </main>
+    <p class="footer">
+        Secure Attendance System &copy; 2026
+    </p>
+</main>
+
 </body>
 </html>
-
