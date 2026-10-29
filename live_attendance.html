@@ -3,373 +3,240 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Live Attendance | FRAMS</title>
-
     <style>
-        * {
-            box-sizing: border-box;
-        }
-
+        * { box-sizing: border-box; }
         body {
-            margin: 0;
-            padding: 22px;
-            background: #081225;
-            color: #eaf2ff;
+            margin: 0; padding: 18px;
+            background: #081225; color: #eaf2ff;
             font-family: Arial, sans-serif;
         }
-
         .container {
-            width: 100%;
-            max-width: 780px;
-            margin: 20px auto;
-            padding: 25px;
-            background: #111f38;
-            border: 1px solid #263c5e;
+            max-width: 780px; margin: 20px auto; padding: 24px;
+            background: #111f38; border: 1px solid #263c5e;
             border-radius: 18px;
-            box-shadow: 0 12px 35px #0004;
         }
-
-        h1 {
-            margin-top: 0;
-            color: #65aaff;
-        }
-
-        .description {
-            color: #b8c8df;
-            line-height: 1.6;
-        }
-
+        h1 { color: #65aaff; }
+        .description, .notice, .gps-status { color: #b8c8df; line-height: 1.6; }
         .camera-box {
-            position: relative;
-            width: 100%;
-            overflow: hidden;
-            background: #020817;
-            border: 1px solid #263c5e;
-            border-radius: 14px;
+            position: relative; overflow: hidden; background: #020817;
+            border: 1px solid #263c5e; border-radius: 14px;
         }
-
         video {
-            display: block;
-            width: 100%;
-            min-height: 220px;
-            max-height: 480px;
-            object-fit: cover;
-            transform: scaleX(-1);
+            display: block; width: 100%; min-height: 220px;
+            max-height: 480px; object-fit: cover; transform: scaleX(-1);
         }
-
         .face-guide {
-            position: absolute;
-            top: 13%;
-            left: 26%;
-            width: 48%;
-            height: 74%;
-            border: 3px solid #24ef91;
-            border-radius: 50%;
-            box-shadow: 0 0 15px #24ef9160;
+            position: absolute; top: 13%; left: 26%; width: 48%;
+            height: 74%; border: 3px solid #24ef91;
+            border-radius: 50%; box-shadow: 0 0 15px #24ef9160;
             pointer-events: none;
         }
-
-        .button-row {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-            margin-top: 16px;
-        }
-
+        .button-row { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px; }
         button, .link-button {
-            display: inline-block;
-            padding: 12px 16px;
-            border: 0;
-            border-radius: 9px;
-            background: #2479ed;
-            color: white;
-            font-size: 14px;
-            font-weight: bold;
-            text-decoration: none;
+            display: inline-block; padding: 12px 16px; border: 0;
+            border-radius: 9px; background: #2479ed; color: white;
+            font-size: 14px; font-weight: bold; text-decoration: none;
             cursor: pointer;
         }
-
-        .secondary {
-            background: #31445f;
-        }
-
-        button:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-
+        .secondary { background: #31445f; }
+        button:disabled { opacity: .5; cursor: not-allowed; }
         #status {
-            margin-top: 18px;
-            padding: 12px;
-            background: #0a172a;
-            border-radius: 9px;
-            color: #a9d0ff;
-            line-height: 1.5;
+            margin-top: 18px; padding: 12px; background: #0a172a;
+            border-radius: 9px; color: #a9d0ff; line-height: 1.5;
             overflow-wrap: anywhere;
         }
-
-        .gps-status {
-            color: #b8c8df;
-            font-size: 13px;
-        }
-
-        .notice {
-            margin-top: 15px;
-            color: #b8c8df;
-            font-size: 13px;
-            line-height: 1.6;
-        }
-
         @media (max-width: 480px) {
-            body {
-                padding: 12px;
-            }
-
-            .container {
-                padding: 17px;
-            }
-
-            button, .link-button {
-                flex: 1 1 100%;
-                text-align: center;
-            }
+            body { padding: 10px; }
+            .container { padding: 16px; }
+            button, .link-button { flex: 1 1 100%; text-align: center; }
         }
     </style>
 </head>
-
 <body>
-    <main class="container">
-        <h1>Live Face Attendance</h1>
+<main class="container">
+    <h1>Live Face Attendance</h1>
+    <p class="description">
+        Start the camera, place one face inside the green oval,
+        capture a photo and submit it for verification.
+    </p>
 
-        <p class="description">
-            Start the camera, place your face inside the green oval,
-            capture a photo, and submit it for verification.
-        </p>
+    <div class="camera-box">
+        <video id="camera" autoplay playsinline muted></video>
+        <div class="face-guide"></div>
+    </div>
 
-        <div class="camera-box">
-            <video id="camera" autoplay playsinline muted></video>
-            <div class="face-guide"></div>
-        </div>
+    <div class="button-row">
+        <button type="button" id="startBtn">Start Camera</button>
+        <button type="button" id="captureBtn" disabled>Capture Face</button>
+        <button type="button" id="stopBtn" class="secondary">Stop Camera</button>
+    </div>
 
-        <div class="button-row">
-            <button type="button" id="startBtn">
-                Start Camera
-            </button>
+    <canvas id="snapshot" hidden></canvas>
 
-            <button type="button" id="captureBtn" disabled>
-                Capture Face
-            </button>
-
-            <button type="button" id="stopBtn" class="secondary">
-                Stop Camera
-            </button>
-        </div>
-
-        <canvas id="snapshot" hidden></canvas>
-
-        <form id="attendanceForm"
-              method="POST"
-              action="{{ url_for('mark_attendance') }}">
-
-            <input type="hidden"
-                   name="face_photo"
-                   id="facePhoto">
-
-            <input type="hidden"
-                   name="latitude"
-                   id="latitude">
-
-            <input type="hidden"
-                   name="longitude"
-                   id="longitude">
-
-            <div class="button-row">
-                <button type="submit" id="submitBtn" disabled>
-                    Verify Face &amp; Mark Attendance
-                </button>
-            </div>
-        </form>
-
-        <p id="status" role="status" aria-live="polite">
-            Camera is not started.
-        </p>
-
-        <p class="gps-status" id="gpsStatus">
-            GPS location has not been checked yet.
-        </p>
-
-        <p class="notice">
-            Camera permission is required. GPS is optional.
-            Your captured photo will be sent to the server for face
-            matching. The green oval is only a visual guide; it does
-            not itself detect a face.
-        </p>
+    <form id="attendanceForm" method="POST"
+          action="{{ url_for('mark_attendance') }}">
+        <input type="hidden" name="face_photo" id="facePhoto">
+        <input type="hidden" name="latitude" id="latitude">
+        <input type="hidden" name="longitude" id="longitude">
 
         <div class="button-row">
-            <a class="link-button secondary"
-               href="{{ url_for('my_attendance') }}">
-                My Attendance
-            </a>
-
-            <a class="link-button secondary"
-               href="{{ url_for('student_dashboard') }}">
-                Dashboard
-            </a>
+            <button type="submit" id="submitBtn" disabled>
+                Verify Face &amp; Mark Attendance
+            </button>
         </div>
-    </main>
+    </form>
 
-    <script>
-        const video = document.getElementById("camera");
-        const canvas = document.getElementById("snapshot");
-        const startBtn = document.getElementById("startBtn");
-        const captureBtn = document.getElementById("captureBtn");
-        const stopBtn = document.getElementById("stopBtn");
-        const submitBtn = document.getElementById("submitBtn");
-        const facePhoto = document.getElementById("facePhoto");
-        const statusText = document.getElementById("status");
-        const gpsStatus = document.getElementById("gpsStatus");
-        const form = document.getElementById("attendanceForm");
+    <p id="status" role="status" aria-live="polite">
+        Camera is not started.
+    </p>
+    <p class="gps-status" id="gpsStatus">GPS not checked yet.</p>
 
-        let cameraStream = null;
+    <p class="notice">
+        Allow camera permission. GPS is optional. The green oval is a
+        guide only; the server performs the actual face verification.
+    </p>
 
-        startBtn.addEventListener("click", async () => {
-            try {
-                if (!navigator.mediaDevices ||
-                    !navigator.mediaDevices.getUserMedia) {
-                    throw new Error(
-                        "Camera requires HTTPS or localhost."
-                    );
-                }
+    <div class="button-row">
+        <a class="link-button secondary" href="{{ url_for('my_attendance') }}">
+            My Attendance
+        </a>
+        <a class="link-button secondary" href="{{ url_for('student_dashboard') }}">
+            Dashboard
+        </a>
+    </div>
+</main>
 
-                if (cameraStream) {
-                    cameraStream.getTracks().forEach(
-                        track => track.stop()
-                    );
-                }
+<script>
+const video = document.getElementById("camera");
+const canvas = document.getElementById("snapshot");
+const startBtn = document.getElementById("startBtn");
+const captureBtn = document.getElementById("captureBtn");
+const stopBtn = document.getElementById("stopBtn");
+const submitBtn = document.getElementById("submitBtn");
+const facePhoto = document.getElementById("facePhoto");
+const statusText = document.getElementById("status");
+const gpsStatus = document.getElementById("gpsStatus");
+const form = document.getElementById("attendanceForm");
 
-                cameraStream =
-                    await navigator.mediaDevices.getUserMedia({
-                        video: {
-                            facingMode: "user",
-                            width: { ideal: 640 },
-                            height: { ideal: 480 }
-                        },
-                        audio: false
-                    });
+let cameraStream = null;
+let submitting = false;
 
-                video.srcObject = cameraStream;
-                await video.play();
+function stopCamera() {
+    if (cameraStream) {
+        cameraStream.getTracks().forEach(track => track.stop());
+        cameraStream = null;
+    }
+    video.srcObject = null;
+    captureBtn.disabled = true;
+}
 
-                captureBtn.disabled = false;
-                facePhoto.value = "";
-                submitBtn.disabled = true;
+startBtn.addEventListener("click", async () => {
+    try {
+        stopCamera();
+        facePhoto.value = "";
+        submitBtn.disabled = true;
+        submitting = false;
 
-                statusText.textContent =
-                    "Camera is running. Place one face inside the green oval.";
-
-            } catch (error) {
-                statusText.textContent =
-                    "Camera could not start. Allow camera permission and " +
-                    "open this page over HTTPS. " + error.message;
-            }
-        });
-
-        captureBtn.addEventListener("click", () => {
-            if (!cameraStream || !video.videoWidth) {
-                statusText.textContent =
-                    "Start the camera and wait for the video first.";
-                return;
-            }
-
-            canvas.width = video.videoWidth;
-            canvas.height = video.videoHeight;
-
-            const context = canvas.getContext("2d");
-
-            // Match the mirrored camera preview.
-            context.translate(canvas.width, 0);
-            context.scale(-1, 1);
-            context.drawImage(
-                video, 0, 0, canvas.width, canvas.height
-            );
-
-            facePhoto.value = canvas.toDataURL("image/jpeg", 0.85);
-
-            submitBtn.disabled = false;
-
-            statusText.textContent =
-                "Photo captured. Submit it for face verification.";
-        });
-
-        stopBtn.addEventListener("click", () => {
-            if (cameraStream) {
-                cameraStream.getTracks().forEach(
-                    track => track.stop()
-                );
-                cameraStream = null;
-            }
-
-            video.srcObject = null;
-            captureBtn.disabled = true;
-            submitBtn.disabled = true;
-            facePhoto.value = "";
-
-            statusText.textContent = "Camera stopped.";
-        });
-
-        form.addEventListener("submit", event => {
-            if (!facePhoto.value) {
-                event.preventDefault();
-                statusText.textContent =
-                    "Please start the camera and capture a face photo first.";
-                return;
-            }
-
-            submitBtn.disabled = true;
-            submitBtn.textContent = "Verifying...";
-            statusText.textContent =
-                "Submitting photo for server-side face verification...";
-        });
-
-        if (navigator.geolocation) {
-            gpsStatus.textContent = "Requesting GPS permission...";
-
-            navigator.geolocation.getCurrentPosition(
-                position => {
-                    document.getElementById("latitude").value =
-                        position.coords.latitude;
-
-                    document.getElementById("longitude").value =
-                        position.coords.longitude;
-
-                    gpsStatus.textContent =
-                        "GPS location received successfully.";
-                },
-                () => {
-                    gpsStatus.textContent =
-                        "GPS unavailable or permission denied. " +
-                        "Attendance can still be attempted without GPS.";
-                },
-                {
-                    enableHighAccuracy: true,
-                    timeout: 10000,
-                    maximumAge: 0
-                }
-            );
-        } else {
-            gpsStatus.textContent =
-                "This browser does not support GPS location.";
+        if (!navigator.mediaDevices?.getUserMedia) {
+            throw new Error("Camera needs HTTPS or localhost.");
         }
 
-        window.addEventListener("pagehide", () => {
-            if (cameraStream) {
-                cameraStream.getTracks().forEach(
-                    track => track.stop()
-                );
-            }
+        cameraStream = await navigator.mediaDevices.getUserMedia({
+            video: {
+                facingMode: "user",
+                width: { ideal: 640 },
+                height: { ideal: 480 }
+            },
+            audio: false
         });
-    </script>
+
+        video.srcObject = cameraStream;
+        await video.play();
+
+        captureBtn.disabled = false;
+        statusText.textContent =
+            "Camera ready. Position your face inside the green oval.";
+    } catch (error) {
+        stopCamera();
+        statusText.textContent =
+            "Camera error: " + error.message +
+            " Check browser permission and use HTTPS or localhost.";
+    }
+});
+
+captureBtn.addEventListener("click", () => {
+    if (!cameraStream || !video.videoWidth || !video.videoHeight) {
+        statusText.textContent = "Start the camera and wait for the video.";
+        return;
+    }
+
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+
+    const context = canvas.getContext("2d");
+    context.translate(canvas.width, 0);
+    context.scale(-1, 1);
+    context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+    facePhoto.value = canvas.toDataURL("image/jpeg", 0.85);
+
+    if (!facePhoto.value.startsWith("data:image/jpeg;base64,")) {
+        facePhoto.value = "";
+        statusText.textContent = "Photo capture failed. Please try again.";
+        return;
+    }
+
+    submitBtn.disabled = false;
+    statusText.textContent =
+        "Photo captured. Click Verify Face & Mark Attendance.";
+});
+
+stopBtn.addEventListener("click", () => {
+    stopCamera();
+    facePhoto.value = "";
+    submitBtn.disabled = true;
+    statusText.textContent = "Camera stopped. Capture a new photo to continue.";
+});
+
+form.addEventListener("submit", event => {
+    if (submitting || !facePhoto.value) {
+        event.preventDefault();
+        statusText.textContent = "Start the camera and capture your face first.";
+        return;
+    }
+
+    submitting = true;
+    submitBtn.disabled = true;
+    submitBtn.textContent = "Verifying...";
+    statusText.textContent =
+        "Sending photo to server. Please wait...";
+    stopCamera();
+});
+
+if (navigator.geolocation) {
+    gpsStatus.textContent = "Requesting GPS permission...";
+
+    navigator.geolocation.getCurrentPosition(
+        position => {
+            document.getElementById("latitude").value =
+                position.coords.latitude;
+            document.getElementById("longitude").value =
+                position.coords.longitude;
+            gpsStatus.textContent = "GPS coordinates received.";
+        },
+        () => {
+            gpsStatus.textContent =
+                "GPS unavailable. Attendance can be attempted without GPS.";
+        },
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+    );
+} else {
+    gpsStatus.textContent = "This browser does not support GPS.";
+}
+
+window.addEventListener("pagehide", stopCamera);
+</script>
 </body>
 </html>
-
