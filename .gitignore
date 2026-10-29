@@ -1,1 +1,42 @@
 
+# Python cache
+__pycache__/
+*.py[cod]
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Environment variables and secrets
+.env
+.env.*
+!.env.example
+
+# Local database and database backups
+database/*.db
+database/*.sqlite
+database/*.sqlite3
+*.db-journal
+
+# Face images and biometric data
+face_data/
+face_encodings/
+known_faces/
+
+# Test and coverage output
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Logs
+*.log
+
+# IDE settings
+.vscode/
+.idea/
+
+# Operating system files
+.DS_Store
+Thumbs.db
+
