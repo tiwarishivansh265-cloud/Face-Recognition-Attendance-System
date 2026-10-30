@@ -1,1 +1,121 @@
 
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Faculty Dashboard | FRAMS</title>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: #0b1220;
+            color: #e5e7eb;
+        }
+        header {
+            background: #111c32;
+            padding: 20px;
+            border-bottom: 1px solid #263653;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        header h2 { margin: 0; color: #60a5fa; }
+        .container { max-width: 1100px; margin: auto; padding: 24px; }
+        .welcome {
+            background: #142440;
+            padding: 24px;
+            border-radius: 14px;
+            margin-bottom: 22px;
+        }
+        .welcome h1 { margin-top: 0; }
+        .cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 18px;
+        }
+        .card {
+            background: #111c32;
+            border: 1px solid #263653;
+            border-radius: 14px;
+            padding: 22px;
+        }
+        .card h3 { color: #93c5fd; margin-top: 0; }
+        .card p { color: #cbd5e1; line-height: 1.6; }
+        .btn {
+            display: inline-block;
+            background: #2563eb;
+            color: white;
+            text-decoration: none;
+            border: none;
+            border-radius: 8px;
+            padding: 11px 15px;
+            margin-top: 8px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .btn:hover { background: #1d4ed8; }
+        .logout { background: #dc2626; }
+        .logout:hover { background: #b91c1c; }
+        .note {
+            margin-top: 22px;
+            background: #172554;
+            border-radius: 10px;
+            padding: 16px;
+            line-height: 1.6;
+        }
+        footer { text-align: center; color: #94a3b8; padding: 25px; }
+    </style>
+</head>
+<body>
+    <header>
+        <h2>FRAMS | Faculty Portal</h2>
+        <a class="btn logout" href="{{ url_for('logout') }}">Logout</a>
+    </header>
+
+    <main class="container">
+        <section class="welcome">
+            <h1>Faculty Dashboard</h1>
+            <p>Welcome, {{ session.get('faculty_name', 'Faculty') }}!</p>
+            <p>Manage your lectures and review student attendance.</p>
+        </section>
+
+        <section class="cards">
+            <div class="card">
+                <h3>My Lectures</h3>
+                <p>View the lectures assigned to you.</p>
+                <a class="btn" href="{{ url_for('faculty_lectures') }}">View Lectures</a>
+            </div>
+
+            <div class="card">
+                <h3>Schedule Lecture</h3>
+                <p>Create a lecture with subject, class, division and timing.</p>
+                <a class="btn" href="{{ url_for('create_lecture') }}">Create Lecture</a>
+            </div>
+
+            <div class="card">
+                <h3>Attendance</h3>
+                <p>Open a lecture to manage attendance using face verification and GPS.</p>
+                <a class="btn" href="{{ url_for('faculty_lectures') }}">Manage Attendance</a>
+            </div>
+
+            <div class="card">
+                <h3>Account Security</h3>
+                <p>Update your account password.</p>
+                <a class="btn" href="{{ url_for('change_password') }}">Change Password</a>
+            </div>
+        </section>
+
+        <div class="note">
+            <strong>Important:</strong> Attendance should be marked only for an active
+            lecture, during its permitted time, after the required face and location checks.
+        </div>
+    </main>
+
+    <footer>Face Recognition Attendance Management System</footer>
+</body>
+</html>
