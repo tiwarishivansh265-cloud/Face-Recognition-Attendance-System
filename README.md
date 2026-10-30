@@ -1,100 +1,84 @@
-# Face-Recognition-Attendance-System
-Recognition Attendance Management System using Flask
-
 # Face Recognition Attendance Management System (FRAMS)
 
-A web-based attendance management project built with Python Flask.
+A Flask-based web application for student registration, face enrollment, attendance records, faculty lecture management, and GPS-assisted attendance verification.
 
-## Project Overview
+## Current features
 
-FRAMS is designed to help manage student registration, face enrollment,
-attendance records, and administrative operations through a web interface.
+- Role-based login for administrator, student, and faculty.
+- Admin dashboard with student and attendance counts.
+- Student registration with password hashing and face-photo enrollment.
+- Face collection page with webcam capture and green alignment guide.
+- Student attendance history and admin attendance reports.
+- Faculty account management, class/subject assignments, lecture scheduling, lecture status management, and lecture attendance reports.
+- Live attendance flow that captures a face photo and GPS coordinates, then verifies the enrolled face and classroom radius on the server.
+- Password change page for authenticated roles.
+- SQLite database initialized automatically by the application.
+- Health endpoint at `/health`.
 
-## Planned Features
-
-- Admin and student login
-- Admin dashboard
-- Student registration
-- Face data collection using a webcam
-- Face recognition and attendance marking
-- Attendance history and reports
-- GPS latitude and longitude capture with permission
-- Password management
-- SQLite database
-
-## Technology Stack
+## Technology
 
 - Python 3.12
 - Flask
-- HTML and CSS
-- JavaScript
 - SQLite
-- OpenCV
-- face-recognition library
+- OpenCV, NumPy, and `face-recognition`
+- HTML, CSS, and JavaScript
 
-## Project Structure
+## Project setup (Windows PowerShell)
 
-```text
-FRAMS_NEW/
-├── app.py
-├── config.py
-├── requirements.txt
-├── .gitignore
-├── README.md
-├── templates/
-│   ├── login.html
-│   ├── admin_dashboard.html
-│   ├── student_dashboard.html
-│   ├── student_registration.html
-│   ├── face_collection.html
-│   ├── attendance.html
-│   ├── reports.html
-│   └── change_password.html
-├── static/
-│   ├── css/
-│   │   └── style.css
-│   └── js/
-│       ├── camera.js
-│       └── location.js
-├── database/
-├── face_data/
-└── tests/
-```
-
-## Installation
-
-1. Install Python 3.12.
-2. Clone this repository.
-3. Create a virtual environment.
-4. Install the dependencies.
-5. Configure environment variables.
-6. Run the Flask application.
-
-Example commands for Windows PowerShell:
+Open a terminal in the repository folder.
 
 ```powershell
 py -3.12 -m venv .venv
+.\.venv\Scripts\python.exe -m pip install --upgrade pip
 .\.venv\Scripts\python.exe -m pip install -r requirements.txt
+```
+
+The `face-recognition` package depends on `dlib`. If installation fails on Windows, use a compatible Python 3.12/dlib setup before running the app.
+
+## Configure the first administrator
+
+The application does **not** create a default admin with a hard-coded password. Configure a username and a strong password in the same PowerShell terminal before the first run:
+
+```powershell
+$env:ADMIN_USERNAME = "admin"
+$env:ADMIN_PASSWORD = "Choose-A-Strong-Password-Here"
+$env:SECRET_KEY = "Replace-With-A-Long-Random-Secret"
 .\.venv\Scripts\python.exe app.py
 ```
 
-Open `http://127.0.0.1:5000` in your browser.
+Replace the example password and secret with your own values. Do not commit real credentials to GitHub. The admin account is inserted when the database is initialized and only if the username does not already exist. If the database already exists without an admin account, configure the environment variables and run the app again; use a controlled local database setup to create the initial account.
 
-## Current Development Status
+Open `http://127.0.0.1:5000` in your browser. Camera and GPS features generally require localhost or HTTPS and the user's permission.
 
-The initial HTML interfaces and starter Flask code are being created.
-Backend routes, authentication, database integration, face recognition,
-GPS attendance storage, and testing still need to be completed.
+## Routes
 
-## Privacy and Security
+- `/` — login
+- `/admin-dashboard` — admin dashboard
+- `/student-dashboard` — student dashboard
+- `/student-registration` — student registration
+- `/face-collection` — face enrollment
+- `/student-records` — admin student records
+- `/attendance-records` — admin attendance records
+- `/reports` — admin reports
+- `/faculty-management` — admin faculty management
+- `/faculty-dashboard` — faculty dashboard
+- `/faculty/lectures` — faculty lecture list
+- `/faculty/lectures/new` — schedule a lecture
+- `/faculty-assignments` — faculty class/subject assignments
+- `/mark-attendance` — student live face/GPS attendance
+- `/my-attendance` — student attendance history
+- `/change-password` — authenticated password change
+- `/forgot-password` — password reset instructions
+- `/health` — simple health check
 
-- Do not commit student face images or biometric data.
-- Do not commit passwords, secret keys, or real student records.
-- Request permission before accessing the camera or location.
-- Use secure password hashing and authentication.
-- Configure production settings before deployment.
+## Privacy and security
 
-## Disclaimer
+- Never commit student face images, biometric data, passwords, or real student records.
+- Keep `SECRET_KEY` and administrator credentials out of source control.
+- Request camera and location permission before accessing them.
+- Use HTTPS for deployed camera/GPS workflows.
+- This is an educational project. Test authentication, face matching, GPS accuracy, and privacy safeguards before using it for real attendance decisions.
 
-This is an educational software project. Face recognition and attendance
-records must be tested for accuracy, security, and privacy before real use.
+## Development status
+
+The routes and templates are connected in the repository. The app still needs to be run and tested in the target Windows/Python environment, including dependency installation, database initialization, role-based flows, camera access, and GPS behavior. A successful GitHub commit does not replace local runtime testing.
