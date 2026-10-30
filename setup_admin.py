@@ -1,7 +1,7 @@
 """Create or reset the local FRAMS administrator account.
 
-This script stores only a Werkzeug password hash in SQLite. It prompts for
-credentials so that a real password never needs to be committed to GitHub.
+Only a Werkzeug password hash is stored in SQLite. Passwords are entered
+interactively and must never be committed to the repository.
 """
 from getpass import getpass
 from pathlib import Path
@@ -20,15 +20,6 @@ def main():
         print("Admin ID must be at least 3 characters.")
         return 1
 
-    password = getpass("Create admin password (at least 8 characters): ")
-    confirm = getpass("Confirm admin password: ")
-    if len(password) < 8:
-        print("Password must contain at least 8 characters.")
-        return 1
-    if password != confirm:
-        print("Passwords do not match.")
-        return 1
-
     DATABASE.parent.mkdir(parents=True, exist_ok=True)
     with sqlite3.connect(str(DATABASE), timeout=15) as conn:
         conn.execute("""
@@ -41,12 +32,22 @@ def main():
             "SELECT username FROM admins WHERE username = ?", (username,)
         ).fetchone()
         if existing:
-            confirm_reset = input(
+            reset = input(
                 f"Admin '{username}' already exists. Reset its password? [y/N]: "
             ).strip().lower()
-            if confirm_reset != "y":
+            if reset != "y":
                 print("Existing admin left unchanged.")
                 return 0
+
+        password = getpass("Create admin password (at least 8 characters): ")
+        confirm = getpass("Confirm admin password: ")
+        if len(password) < 8:
+            print("Password must contain at least 8 characters.")
+            return 1
+        if password != confirm:
+            print("Passwords do not match.")
+            return 1
+
         conn.execute("""
             INSERT INTO admins (username, password_hash)
             VALUES (?, ?)
@@ -54,7 +55,7 @@ def main():
                 password_hash = excluded.password_hash
         """, (username, generate_password_hash(password)))
 
-    print("\nAdmin account is ready.")
+    print("\\nAdmin account is ready.")
     print(f"Admin ID: {username}")
     print("Password: the password you just entered (not stored as plain text).")
     print("Keep it private and change it from the dashboard after login.")
