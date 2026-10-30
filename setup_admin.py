@@ -37,6 +37,16 @@ def main():
                 password_hash TEXT NOT NULL
             )
         """)
+        existing = conn.execute(
+            "SELECT username FROM admins WHERE username = ?", (username,)
+        ).fetchone()
+        if existing:
+            confirm_reset = input(
+                f"Admin '{username}' already exists. Reset its password? [y/N]: "
+            ).strip().lower()
+            if confirm_reset != "y":
+                print("Existing admin left unchanged.")
+                return 0
         conn.execute("""
             INSERT INTO admins (username, password_hash)
             VALUES (?, ?)
