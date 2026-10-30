@@ -1390,7 +1390,7 @@ def forgot_password():
 @app.route("/health")
 def health():
     return {"status": "ok"}
-.
+
 
 init_db()
 
