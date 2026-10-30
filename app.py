@@ -1,3 +1,4 @@
+
 import os
 import re
 import base64
@@ -120,6 +121,7 @@ def init_db():
             "longitude": "REAL",
         })
 
+        # Initial admin is created only when a password is configured.
         admin_username = os.environ.get("ADMIN_USERNAME", "admin")
         admin_password = os.environ.get("ADMIN_PASSWORD")
 
@@ -133,7 +135,6 @@ def init_db():
                 generate_password_hash(admin_password)
             ))
 
-        # Faculty accounts
         conn.execute("""
             CREATE TABLE IF NOT EXISTS faculty (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -145,7 +146,6 @@ def init_db():
             )
         """)
 
-        # Optional faculty subject/class assignments
         conn.execute("""
             CREATE TABLE IF NOT EXISTS faculty_assignments (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -154,11 +154,10 @@ def init_db():
                 student_class TEXT NOT NULL,
                 division TEXT NOT NULL,
                 UNIQUE(faculty_id, subject, student_class, division),
-                FOREIGN KEY (faculty_id) REFERENCES faculty(faculty_id)
+                FOREIGN KEY(faculty_id) REFERENCES faculty(faculty_id)
             )
         """)
 
-        # Lecture schedules and classroom GPS location
         conn.execute("""
             CREATE TABLE IF NOT EXISTS lecture_sessions (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -177,11 +176,10 @@ def init_db():
                 allowed_radius_m INTEGER NOT NULL DEFAULT 100,
                 status TEXT NOT NULL DEFAULT 'Scheduled',
                 created_at TEXT NOT NULL,
-                FOREIGN KEY (faculty_id) REFERENCES faculty(faculty_id)
+                FOREIGN KEY(faculty_id) REFERENCES faculty(faculty_id)
             )
         """)
 
-        # One attendance record per student per lecture
         conn.execute("""
             CREATE TABLE IF NOT EXISTS lecture_attendance (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -193,9 +191,9 @@ def init_db():
                 longitude REAL NOT NULL,
                 distance_m REAL NOT NULL,
                 face_match INTEGER NOT NULL DEFAULT 1,
-                FOREIGN KEY (lecture_id) REFERENCES lecture_sessions(id),
-                FOREIGN KEY (student_id) REFERENCES students(student_id),
-                UNIQUE (lecture_id, student_id)
+                FOREIGN KEY(lecture_id) REFERENCES lecture_sessions(id),
+                FOREIGN KEY(student_id) REFERENCES students(student_id),
+                UNIQUE(lecture_id, student_id)
             )
         """)
 
@@ -215,7 +213,6 @@ def login_required(role=None):
                 abort(403)
 
             return view(*args, **kwargs)
-
         return wrapped
     return decorator
 
@@ -268,9 +265,7 @@ def decode_face_photo(data_url):
             match.group(2), validate=True
         )
     except (binascii.Error, ValueError) as error:
-        raise ValueError(
-            "Captured photo could not be decoded."
-        ) from error
+        raise ValueError("Captured photo could not be decoded.") from error
 
     if not image_bytes or len(image_bytes) > 2_500_000:
         raise ValueError("Photo is empty or too large.")
@@ -344,14 +339,15 @@ def enrolled_photo_path(relative_path):
 
 def validate_coordinates(latitude, longitude):
     if not (
-        -90 <= latitude <= 90
+        math.isfinite(latitude)
+        and math.isfinite(longitude)
+        and -90 <= latitude <= 90
         and -180 <= longitude <= 180
     ):
         raise ValueError("GPS coordinates are out of range.")
 
 
 def distance_in_metres(lat1, lon1, lat2, lon2):
-    """Calculate approximate ground distance using the Haversine formula."""
     earth_radius = 6_371_000
 
     lat1, lon1, lat2, lon2 = map(
@@ -366,6 +362,8 @@ def distance_in_metres(lat1, lon1, lat2, lon2):
         + math.cos(lat1) * math.cos(lat2)
         * math.sin(dlon / 2) ** 2
     )
+
+    a = max(0.0, min(1.0, a))
 
     return earth_radius * 2 * math.atan2(
         math.sqrt(a), math.sqrt(1 - a)
@@ -443,6 +441,7 @@ def logout():
     flash("You have been logged out.")
     return redirect(url_for("login"))
 
+
 # ==================================================
 # ADMIN DASHBOARD
 # ==================================================
@@ -477,7 +476,7 @@ def admin_dashboard():
 
 
 # ==================================================
-# STUDENT DASHBOARD
+# STUDENT DASHBOARD AND PROFILE
 # ==================================================
 
 @app.route("/student-dashboard")
@@ -489,6 +488,8 @@ def student_dashboard():
         session.clear()
         return redirect(url_for("login"))
 
+    today = datetime.now().strftime("%Y-%m-%d")
+
     with get_db() as conn:
         lectures = conn.execute("""
             SELECT ls.*
@@ -499,9 +500,7 @@ def student_dashboard():
               AND ls.lecture_date = ?
             ORDER BY ls.start_time
         """, (
-            student["student_class"],
-            student["division"],
-            datetime.now().strftime("%Y-%m-%d")
+            student["student_class"], student["division"], today
         )).fetchall()
 
     return render_template(
@@ -546,25 +545,21 @@ def faculty_management():
                 with get_db() as conn:
                     conn.execute("""
                         INSERT INTO faculty (
-                            faculty_id, name, email, department,
-                            password_hash
+                            faculty_id, name, email, department, password_hash
                         )
                         VALUES (?, ?, ?, ?, ?)
                     """, (
                         faculty_id, name, email, department,
                         generate_password_hash(password)
                     ))
-
                 flash("Faculty account created successfully.")
-
             except sqlite3.IntegrityError:
                 flash("This Faculty ID already exists.")
 
     with get_db() as conn:
         faculty_members = conn.execute("""
             SELECT faculty_id, name, email, department
-            FROM faculty
-            ORDER BY name
+            FROM faculty ORDER BY name
         """).fetchall()
 
     return render_template(
@@ -584,8 +579,8 @@ def faculty_delete(faculty_id):
 
         if assigned_lectures:
             flash(
-                "Faculty has lecture records. Deactivate or retain "
-                "the account to preserve records."
+                "Faculty has lecture records. Retain the account "
+                "to preserve those records."
             )
         else:
             conn.execute(
@@ -639,6 +634,29 @@ def faculty_dashboard():
 
 
 # ==================================================
+# FACULTY LECTURE LIST - ADDED ROUTE
+# ==================================================
+
+@app.route("/faculty/lectures")
+@login_required("faculty")
+def faculty_lectures():
+    faculty_id = session.get("faculty_id")
+
+    with get_db() as conn:
+        lectures = conn.execute("""
+            SELECT ls.*,
+                   (SELECT COUNT(*)
+                    FROM lecture_attendance la
+                    WHERE la.lecture_id = ls.id) AS present_count
+            FROM lecture_sessions ls
+            WHERE ls.faculty_id = ?
+            ORDER BY ls.lecture_date DESC, ls.start_time DESC
+        """, (faculty_id,)).fetchall()
+
+    return render_template("faculty_lectures.html", lectures=lectures)
+
+
+# ==================================================
 # FACULTY CLASS / SUBJECT ASSIGNMENTS
 # ==================================================
 
@@ -666,7 +684,6 @@ def faculty_assignments():
                         faculty_id, subject, student_class, division
                     ))
                 flash("Subject/class assignment added.")
-
             except sqlite3.IntegrityError:
                 flash("This assignment already exists.")
 
@@ -781,8 +798,7 @@ def face_collection():
                 with get_db() as conn:
                     student = conn.execute("""
                         SELECT student_id, face_photo_path
-                        FROM students
-                        WHERE student_id = ?
+                        FROM students WHERE student_id = ?
                     """, (student_id,)).fetchone()
 
                 if student is None:
@@ -819,11 +835,11 @@ def face_collection():
     with get_db() as conn:
         students = conn.execute("""
             SELECT student_id, name
-            FROM students
-            ORDER BY name
+            FROM students ORDER BY name
         """).fetchall()
 
     return render_template("face_collection.html", students=students)
+
 
 # ==================================================
 # FACULTY LECTURE SCHEDULING
@@ -887,21 +903,17 @@ def create_lecture():
             with get_db() as conn:
                 conn.execute("""
                     INSERT INTO lecture_sessions (
-                        faculty_id, subject, topic,
-                        student_class, division,
-                        lecture_date, start_time, end_time,
-                        room_number, location_name,
-                        latitude, longitude, allowed_radius_m,
-                        status, created_at
+                        faculty_id, subject, topic, student_class,
+                        division, lecture_date, start_time, end_time,
+                        room_number, location_name, latitude, longitude,
+                        allowed_radius_m, status, created_at
                     )
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
                             'Scheduled', ?)
                 """, (
-                    faculty_id, subject, topic,
-                    student_class, division,
-                    date_value.isoformat(),
-                    start_time, end_time,
-                    room_number, location_name,
+                    faculty_id, subject, topic, student_class,
+                    division, date_value.isoformat(), start_time,
+                    end_time, room_number, location_name,
                     latitude, longitude, radius,
                     datetime.now().isoformat(timespec="seconds")
                 ))
@@ -916,7 +928,7 @@ def create_lecture():
 
 
 # ==================================================
-# ACTIVATE / DEACTIVATE LECTURE
+# UPDATE LECTURE STATUS
 # ==================================================
 
 @app.route(
@@ -951,7 +963,7 @@ def update_lecture_status(lecture_id):
         """, (new_status, lecture_id, faculty_id))
 
     flash("Lecture status updated.")
-    return redirect(url_for("faculty_dashboard"))
+    return redirect(url_for("faculty_lectures"))
 
 
 # ==================================================
@@ -965,8 +977,7 @@ def faculty_lecture_attendance(lecture_id):
 
     with get_db() as conn:
         lecture = conn.execute("""
-            SELECT *
-            FROM lecture_sessions
+            SELECT * FROM lecture_sessions
             WHERE id = ? AND faculty_id = ?
         """, (lecture_id, faculty_id)).fetchone()
 
@@ -974,8 +985,7 @@ def faculty_lecture_attendance(lecture_id):
             abort(404)
 
         records = conn.execute("""
-            SELECT la.student_id, s.name,
-                   s.student_class, s.division,
+            SELECT la.student_id, s.name, s.student_class, s.division,
                    la.attendance_date, la.attendance_time,
                    la.latitude, la.longitude, la.distance_m
             FROM lecture_attendance la
@@ -990,6 +1000,7 @@ def faculty_lecture_attendance(lecture_id):
         records=records
     )
 
+
 # ==================================================
 # STUDENT RECORDS
 # ==================================================
@@ -1001,8 +1012,7 @@ def student_records():
         students = conn.execute("""
             SELECT student_id, user_id, name, student_class,
                    division, mobile, email
-            FROM students
-            ORDER BY name
+            FROM students ORDER BY name
         """).fetchall()
 
     return render_template("student_records.html", students=students)
@@ -1025,9 +1035,8 @@ def attendance_records():
         """).fetchall()
 
         lecture_records = conn.execute("""
-            SELECT la.student_id, s.name,
-                   ls.subject, ls.topic, ls.student_class,
-                   ls.division, la.attendance_date,
+            SELECT la.student_id, s.name, ls.subject, ls.topic,
+                   ls.student_class, ls.division, la.attendance_date,
                    la.attendance_time, la.distance_m
             FROM lecture_attendance la
             JOIN students s ON s.student_id = la.student_id
@@ -1067,7 +1076,9 @@ def reports():
                 end = datetime.strptime(end_date, "%Y-%m-%d").date()
 
                 if start > end:
-                    raise ValueError("Start date must not be after end date.")
+                    raise ValueError(
+                        "Start date must not be after end date."
+                    )
 
                 attendance_count = conn.execute("""
                     SELECT COUNT(*) FROM attendance
@@ -1122,22 +1133,19 @@ def change_password():
         elif new != confirm:
             flash("New passwords do not match.")
         else:
-            with get_db() as conn:
-                if role == "admin":
-                    table = "admins"
-                    key_column = "username"
-                    key_value = session.get("username")
-                elif role == "student":
-                    table = "students"
-                    key_column = "student_id"
-                    key_value = session.get("student_id")
-                elif role == "faculty":
-                    table = "faculty"
-                    key_column = "faculty_id"
-                    key_value = session.get("faculty_id")
-                else:
-                    abort(403)
+            if role == "admin":
+                table, key_column = "admins", "username"
+                key_value = session.get("username")
+            elif role == "student":
+                table, key_column = "students", "student_id"
+                key_value = session.get("student_id")
+            elif role == "faculty":
+                table, key_column = "faculty", "faculty_id"
+                key_value = session.get("faculty_id")
+            else:
+                abort(403)
 
+            with get_db() as conn:
                 account = conn.execute(
                     f"SELECT password_hash FROM {table} "
                     f"WHERE {key_column} = ?",
@@ -1240,9 +1248,11 @@ def mark_attendance():
 
     try:
         lecture_id = request.form.get("lecture_id", "").strip()
+
         if not lecture_id.isdigit():
             raise ValueError("Please select an active lecture.")
 
+        # Re-check lecture on submission.
         with get_db() as conn:
             lecture = conn.execute("""
                 SELECT *
@@ -1255,12 +1265,8 @@ def mark_attendance():
                   AND start_time <= ?
                   AND end_time >= ?
             """, (
-                int(lecture_id),
-                student["student_class"],
-                student["division"],
-                today,
-                current_time,
-                current_time
+                int(lecture_id), student["student_class"],
+                student["division"], today, current_time, current_time
             )).fetchone()
 
         if lecture is None:
@@ -1269,7 +1275,7 @@ def mark_attendance():
                 "at this time."
             )
 
-        # Require current GPS coordinates.
+        # Validate GPS.
         lat_text = request.form.get("latitude", "").strip()
         lon_text = request.form.get("longitude", "").strip()
 
@@ -1285,8 +1291,7 @@ def mark_attendance():
         validate_coordinates(latitude, longitude)
 
         distance = distance_in_metres(
-            latitude,
-            longitude,
+            latitude, longitude,
             float(lecture["latitude"]),
             float(lecture["longitude"])
         )
@@ -1297,7 +1302,7 @@ def mark_attendance():
                 f"({distance:.0f} m away). Attendance was not marked."
             )
 
-        # Verify captured face against the enrolled face.
+        # Match captured face with enrolled face.
         _, captured_bgr, _ = decode_face_photo(
             request.form.get("face_photo", "")
         )
@@ -1329,22 +1334,20 @@ def mark_attendance():
                 "Face did not match. Attendance was not marked."
             )
 
+        # One record per student per lecture.
         with get_db() as conn:
             conn.execute("""
                 INSERT INTO lecture_attendance (
-                    lecture_id, student_id,
-                    attendance_date, attendance_time,
-                    latitude, longitude, distance_m, face_match
+                    lecture_id, student_id, attendance_date,
+                    attendance_time, latitude, longitude,
+                    distance_m, face_match
                 )
                 VALUES (?, ?, ?, ?, ?, ?, ?, 1)
             """, (
-                int(lecture_id),
-                student["student_id"],
+                int(lecture_id), student["student_id"],
                 now.strftime("%Y-%m-%d"),
                 now.strftime("%H:%M:%S"),
-                latitude,
-                longitude,
-                round(distance, 2)
+                latitude, longitude, round(distance, 2)
             ))
 
         flash("Face and GPS verified. Lecture attendance saved.")
@@ -1387,7 +1390,7 @@ def forgot_password():
 @app.route("/health")
 def health():
     return {"status": "ok"}
-
+.
 
 init_db()
 
