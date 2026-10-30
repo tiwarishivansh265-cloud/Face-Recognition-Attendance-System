@@ -343,6 +343,11 @@
             <span>▥</span> Reports
         </a>
 
+        <a class="nav-link"
+           href="{{ url_for('faculty_management') }}">
+            <span>♧</span> Faculty Management
+        </a>
+
         <div class="nav-label">Account</div>
 
         <a class="nav-link"
@@ -404,6 +409,18 @@
                 <div class="stat-note">
                     Attendance records saved in the database
                 </div>
+            </article>
+
+            <article class="stat-card">
+                <div class="stat-label">Faculty Members</div>
+                <div class="stat-number">{{ faculty_count }}</div>
+                <div class="stat-note">Faculty accounts in the database</div>
+            </article>
+
+            <article class="stat-card">
+                <div class="stat-label">Lecture Sessions</div>
+                <div class="stat-number">{{ lecture_count }}</div>
+                <div class="stat-note">Scheduled and recorded lectures</div>
             </article>
         </section>
 
