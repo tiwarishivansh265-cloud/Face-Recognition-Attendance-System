@@ -82,3 +82,9 @@ Open `http://127.0.0.1:5000` in your browser. Camera and GPS features generally 
 ## Development status
 
 The routes and templates are connected in the repository. The app still needs to be run and tested in the target Windows/Python environment, including dependency installation, database initialization, role-based flows, camera access, and GPS behavior. A successful GitHub commit does not replace local runtime testing.
+
+## Automated checks
+
+GitHub Actions runs a lightweight check on pushes and pull requests to `main`. It verifies that `app.py` compiles with Python 3.12 and that every statically referenced template and Flask endpoint exists. These checks do not install OpenCV/dlib or replace a full local test of login, database, camera, face matching, or GPS behavior.
+
+Workflow: [FRAMS quality checks](.github/workflows/quality-check.yml)
