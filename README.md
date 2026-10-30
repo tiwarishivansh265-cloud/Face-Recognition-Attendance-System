@@ -23,32 +23,36 @@ A Flask-based web application for student registration, face enrollment, attenda
 - OpenCV, NumPy, and `face-recognition`
 - HTML, CSS, and JavaScript
 
-## Project setup (Windows PowerShell)
+## Project setup (Windows)
 
-Open a terminal in the repository folder.
+**Recommended:** use Python 3.12 and open the extracted repository folder in VS Code.
+
+1. Double-click `setup_windows.bat` or run it from a terminal. It creates `.venv`, installs requirements, and starts the app.
+2. On first setup, the script asks you to create the administrator account. Use **Admin ID: `admin`** and enter a password of at least 8 characters twice. The password is hashed before being stored; it is not written into the repository.
+3. Open `http://127.0.0.1:5000` in your browser and select **Administrator** on the login page.
+4. Keep the terminal window open while using the app. Press `Ctrl+C` to stop Flask.
+
+You can create or reset the admin account separately by running:
+
+```powershell
+.\.venv\Scripts\python.exe setup_admin.py
+```
+
+### Important Windows dependency note
+
+The project uses `face-recognition`, which depends on `dlib`. Its installation can fail on some Windows machines if a compatible wheel/build environment is unavailable. The batch file will stop and show the error rather than pretending setup succeeded. If that happens, copy the complete terminal error so the exact dependency issue can be fixed; do not switch randomly between Python versions.
+
+For manual setup:
 
 ```powershell
 py -3.12 -m venv .venv
 .\.venv\Scripts\python.exe -m pip install --upgrade pip
 .\.venv\Scripts\python.exe -m pip install -r requirements.txt
-```
-
-The `face-recognition` package depends on `dlib`. If installation fails on Windows, use a compatible Python 3.12/dlib setup before running the app.
-
-## Configure the first administrator
-
-The application does **not** create a default admin with a hard-coded password. Configure a username and a strong password in the same PowerShell terminal before the first run:
-
-```powershell
-$env:ADMIN_USERNAME = "admin"
-$env:ADMIN_PASSWORD = "Choose-A-Strong-Password-Here"
-$env:SECRET_KEY = "Replace-With-A-Long-Random-Secret"
+.\.venv\Scripts\python.exe setup_admin.py
 .\.venv\Scripts\python.exe app.py
 ```
 
-Replace the example password and secret with your own values. Do not commit real credentials to GitHub. The admin account is inserted when the database is initialized and only if the username does not already exist. If the database already exists without an admin account, configure the environment variables and run the app again; use a controlled local database setup to create the initial account.
-
-Open `http://127.0.0.1:5000` in your browser. Camera and GPS features generally require localhost or HTTPS and the user's permission.
+Camera and GPS features generally require localhost or HTTPS and browser permission. The first administrator is created by `setup_admin.py`; the app does not ship with a public hard-coded password.
 
 ## Routes
 
