@@ -21,6 +21,6 @@ jobs:
         with:
           python-version: "3.12"
       - name: Check Python syntax
-        run: python -m py_compile app.py
+        run: python -m py_compile app.py setup_admin.py tests/check_project.py tests/test_app.py
       - name: Check template and route references
         run: python tests/check_project.py
